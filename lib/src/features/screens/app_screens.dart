@@ -43,11 +43,19 @@ class WelcomeScreen extends StatelessWidget {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          const _ShowcaseImageBackdrop(alignment: Alignment.centerLeft),
+          const Positioned.fill(
+            child: Image(
+              image: AssetImage('assets/images/onboarding_hero.jpg'),
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            ),
+          ),
+          Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .24))),
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
-                colors: [Colors.transparent, AppColors.brandBlack],
+                colors: [Colors.transparent, Color(0xDD071119), AppColors.brandBlack],
+                stops: [0.35, 0.72, 1],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -55,19 +63,25 @@ class WelcomeScreen extends StatelessWidget {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(AppSpacing.x6),
+              padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(l.t('app'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 21)),
+                  Row(
+                    children: [
+                      const _AthleteLogoMark(),
+                      const SizedBox(width: 10),
+                      Text(l.t('app'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+                    ],
+                  ),
                   const Spacer(),
-                  Text(l.t('heroTitle'), style: Theme.of(context).textTheme.displayLarge?.copyWith(color: Colors.white)),
-                  const SizedBox(height: 18),
-                  Text(l.t('heroSubtitle'), style: const TextStyle(color: Colors.white70, fontSize: 17, fontWeight: FontWeight.w600)),
+                  Text(l.t('heroTitle'), style: Theme.of(context).textTheme.displayLarge?.copyWith(color: Colors.white, fontSize: 40)),
+                  const SizedBox(height: 14),
+                  Text(l.t('heroSubtitle'), style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600, height: 1.35)),
                   const SizedBox(height: 28),
                   SizedBox(width: double.infinity, child: PrimaryButton(label: l.t('getStarted'), onPressed: onGetStarted)),
-                  const SizedBox(height: 18),
-                  TextButton(onPressed: () {}, child: Text('${l.t('signinPrompt')} ${l.t('signIn')}', style: const TextStyle(color: Colors.white70))),
+                  const SizedBox(height: 14),
+                  Center(child: TextButton(onPressed: () {}, child: Text('${l.t('signinPrompt')} ${l.t('signIn')}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)))),
                 ],
               ),
             ),
@@ -78,42 +92,29 @@ class WelcomeScreen extends StatelessWidget {
   }
 }
 
-class _AthleteBackdrop extends StatelessWidget {
-  const _AthleteBackdrop();
+class _AthleteLogoMark extends StatelessWidget {
+  const _AthleteLogoMark();
   @override
-  Widget build(BuildContext context) {
-    return CustomPaint(painter: _AthleteBackdropPainter());
-  }
+  Widget build(BuildContext context) => SizedBox(width: 34, height: 28, child: CustomPaint(painter: _LogoPainter()));
 }
 
-class _ShowcaseImageBackdrop extends StatelessWidget {
-  const _ShowcaseImageBackdrop({this.alignment = Alignment.center});
-  final Alignment alignment;
-
-  @override
-  Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/athleteos_showcase.png',
-      fit: BoxFit.cover,
-      alignment: alignment,
-      color: Colors.black.withValues(alpha: .18),
-      colorBlendMode: BlendMode.darken,
-    );
-  }
-}
-
-class _AthleteBackdropPainter extends CustomPainter {
+class _LogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final bg = Paint()..shader = const LinearGradient(colors: [AppColors.brandBlack, AppColors.deepNavy], begin: Alignment.topLeft, end: Alignment.bottomRight).createShader(Offset.zero & size);
-    canvas.drawRect(Offset.zero & size, bg);
-    final skin = Paint()..color = const Color(0xFF38454B);
-    final glow = Paint()..color = AppColors.primaryGreen.withValues(alpha: .10);
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * .72, size.height * .48), width: size.width * .62, height: size.height * .78), glow);
-    canvas.drawOval(Rect.fromCenter(center: Offset(size.width * .72, size.height * .31), width: 96, height: 112), skin);
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * .54, size.height * .43, size.width * .34, size.height * .34), const Radius.circular(72)), skin);
-    canvas.drawLine(Offset(size.width * .54, size.height * .55), Offset(size.width * .34, size.height * .67), Paint()..color = const Color(0xFF222B31)..strokeWidth = 42..strokeCap = StrokeCap.round);
-    canvas.drawLine(Offset(size.width * .84, size.height * .55), Offset(size.width * .96, size.height * .75), Paint()..color = const Color(0xFF222B31)..strokeWidth = 42..strokeCap = StrokeCap.round);
+    final p = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+    final path = Path()
+      ..moveTo(1, size.height - 2)
+      ..lineTo(size.width * .28, 3)
+      ..lineTo(size.width * .50, size.height - 2)
+      ..lineTo(size.width * .66, 8)
+      ..lineTo(size.width - 1, size.height - 2);
+    canvas.drawPath(path, p);
+    canvas.drawLine(Offset(size.width * .22, size.height - 2), Offset(size.width * .42, size.height * .42), p);
   }
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
@@ -130,7 +131,7 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const AthleteAvatar(label: 'A'),
+            const AthleteAvatar(label: 'A', imagePath: 'assets/images/athlete_ali_avatar.jpg'),
             const SizedBox(width: 14),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(l.t('goodMorning'), style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w700)),
@@ -197,7 +198,7 @@ class _WorkoutCard extends StatelessWidget {
         const SizedBox(height: 8),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Column(children: [
-            for (var i = 0; i < exercises.length; i++) _ExerciseLine(name: exercises[i].name, detail: exercises[i].detail, complete: i == 0),
+            for (var i = 0; i < exercises.length; i++) _ExerciseLine(exercise: exercises[i], complete: i == 0),
           ])),
           const SizedBox(width: 8),
           const ProgressRing(value: .75, size: 58),
@@ -210,9 +211,8 @@ class _WorkoutCard extends StatelessWidget {
 }
 
 class _ExerciseLine extends StatelessWidget {
-  const _ExerciseLine({required this.name, required this.detail, this.complete = false});
-  final String name;
-  final String detail;
+  const _ExerciseLine({required this.exercise, this.complete = false});
+  final Exercise exercise;
   final bool complete;
   @override
   Widget build(BuildContext context) {
@@ -221,12 +221,16 @@ class _ExerciseLine extends StatelessWidget {
       child: Row(children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: SizedBox(width: 52, height: 52, child: const _ShowcaseImageBackdrop(alignment: Alignment.center)),
+          child: SizedBox(
+            width: 52,
+            height: 52,
+            child: Image.asset(exercise.imagePath, fit: BoxFit.cover),
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(name, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800)),
-          Text(detail, style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w600, fontSize: 12)),
+          Text(exercise.name, style: const TextStyle(color: AppColors.textDark, fontWeight: FontWeight.w800)),
+          Text(exercise.detail, style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w600, fontSize: 12)),
         ])),
         Icon(complete ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded, color: complete ? AppColors.primaryGreen : AppColors.textMuted, size: 22),
       ]),
@@ -272,8 +276,14 @@ class WorkoutScreen extends StatelessWidget {
           decoration: BoxDecoration(color: AppColors.darkSurface, borderRadius: BorderRadius.circular(AppRadii.xl)),
           clipBehavior: Clip.antiAlias,
           child: Stack(children: [
-            const Positioned.fill(child: _ShowcaseImageBackdrop(alignment: Alignment.center)),
-            Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .44))),
+            const Positioned.fill(
+              child: Image(
+                image: AssetImage('assets/images/exercises/back_squat_hero.jpg'),
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+              ),
+            ),
+            Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .20))),
             Center(child: IconButton.filled(onPressed: () {}, icon: const Icon(Icons.play_arrow_rounded), style: IconButton.styleFrom(backgroundColor: AppColors.primaryGreen, foregroundColor: AppColors.brandBlack))),
             Positioned(left: 16, bottom: 16, child: Wrap(spacing: 8, children: [StatusBadge(label: l.t('strength'), dark: true), StatusBadge(label: l.t('compound'), dark: true)])),
             Positioned(left: 16, bottom: 58, child: Text(l.t('backSquat'), style: Theme.of(context).textTheme.headlineSmall?.copyWith(color: Colors.white))),
@@ -299,24 +309,6 @@ class WorkoutScreen extends StatelessWidget {
 }
 
 const _tableHead = TextStyle(color: Colors.white54, fontWeight: FontWeight.w800);
-
-class _WorkoutMedia extends StatelessWidget {
-  const _WorkoutMedia();
-  @override
-  Widget build(BuildContext context) => CustomPaint(painter: _WorkoutMediaPainter(), size: Size.infinite);
-}
-
-class _WorkoutMediaPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFF151F29));
-    canvas.drawCircle(Offset(size.width * .68, size.height * .44), 42, Paint()..color = const Color(0xFF343F48));
-    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(size.width * .52, size.height * .55, 130, 52), const Radius.circular(28)), Paint()..color = const Color(0xFF2D363E));
-    canvas.drawLine(Offset(size.width * .30, size.height * .36), Offset(size.width * .80, size.height * .36), Paint()..color = Colors.white24..strokeWidth = 8..strokeCap = StrokeCap.round);
-  }
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
 
 class _SetRow extends StatelessWidget {
   const _SetRow({required this.set});
@@ -453,7 +445,7 @@ class _ProfessionalCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(padding: const EdgeInsets.all(16), decoration: _darkBox(), child: Row(children: [
-        AthleteAvatar(label: p.initials),
+        AthleteAvatar(label: p.initials, imagePath: p.imagePath),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(p.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)), Text(p.role, style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w700))])),
         SecondaryButton(label: l.t('message'), dark: true),
@@ -540,7 +532,14 @@ class _MealCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(padding: const EdgeInsets.all(16), decoration: _darkBox(), child: Row(children: [
-        ClipRRect(borderRadius: BorderRadius.circular(10), child: SizedBox(width: 64, height: 56, child: const _ShowcaseImageBackdrop(alignment: Alignment.bottomRight))),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: SizedBox(
+            width: 64,
+            height: 56,
+            child: Image.asset(meal.imagePath, fit: BoxFit.cover),
+          ),
+        ),
         const SizedBox(width: 12),
         Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(meal.slot, style: const TextStyle(color: Colors.white60, fontWeight: FontWeight.w700)), Text(meal.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16)), Text(meal.kcal, style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w800))])),
         TextButton(onPressed: () {}, child: Text(l.t('markAsEaten'))),
@@ -560,7 +559,13 @@ class CompetitionScreen extends StatelessWidget {
       _Tabs(labels: [l.t('overview'), l.t('rankings'), l.t('myJourney')]),
       const SizedBox(height: 18),
       Container(height: 220, clipBehavior: Clip.antiAlias, padding: const EdgeInsets.all(22), decoration: BoxDecoration(color: AppColors.darkSurface, borderRadius: BorderRadius.circular(AppRadii.xl)), child: Stack(children: [
-        const Positioned.fill(child: _ShowcaseImageBackdrop(alignment: Alignment.bottomRight)),
+        const Positioned.fill(
+          child: Image(
+            image: AssetImage('assets/images/competition/competition_hero.jpg'),
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+          ),
+        ),
         Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .34))),
         Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Spacer(),

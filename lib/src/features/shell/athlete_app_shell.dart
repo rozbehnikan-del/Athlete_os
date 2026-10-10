@@ -45,7 +45,16 @@ class _AthleteAppShellState extends State<AthleteAppShell> {
           selectedIndex: _index,
           backgroundColor: dark ? AppColors.brandBlack : Colors.white,
           indicatorColor: dark ? Colors.white10 : const Color(0xFFE7FBEF),
-          labelTextStyle: WidgetStatePropertyAll(TextStyle(color: dark ? Colors.white70 : AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w700)),
+          elevation: 0,
+          height: 68,
+          labelTextStyle: WidgetStateProperty.resolveWith((states) {
+            final selected = states.contains(WidgetState.selected);
+            return TextStyle(
+              color: selected ? (dark ? Colors.white : AppColors.textDark) : (dark ? Colors.white54 : AppColors.textMuted),
+              fontSize: 11,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            );
+          }),
           onDestinationSelected: (value) => setState(() => _index = value),
           destinations: navItems,
         ),

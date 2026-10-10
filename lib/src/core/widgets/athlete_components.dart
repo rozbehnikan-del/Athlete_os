@@ -19,9 +19,9 @@ class PrimaryButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: AppColors.brandBlack,
-        minimumSize: const Size(0, 48),
+        minimumSize: const Size(0, 54),
         textStyle: Theme.of(context).textTheme.labelLarge,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
       ),
     );
   }
@@ -40,9 +40,9 @@ class SecondaryButton extends StatelessWidget {
       style: OutlinedButton.styleFrom(
         foregroundColor: dark ? Colors.white : AppColors.textDark,
         side: BorderSide(color: dark ? Colors.white24 : AppColors.line),
-        minimumSize: const Size(0, 48),
+        minimumSize: const Size(0, 50),
         textStyle: Theme.of(context).textTheme.labelLarge,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
       ),
       child: Text(label),
     );
@@ -66,22 +66,27 @@ class SectionHeader extends StatelessWidget {
 }
 
 class AthleteAvatar extends StatelessWidget {
-  const AthleteAvatar({super.key, this.label = 'A', this.size = 48});
+  const AthleteAvatar({super.key, this.label = 'A', this.size = 48, this.imagePath});
   final String label;
   final double size;
+  final String? imagePath;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: size,
       height: size,
-      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
         borderRadius: BorderRadius.circular(size / 2),
         border: Border.all(color: AppColors.primaryGreen, width: 2),
       ),
-      child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+      clipBehavior: Clip.antiAlias,
+      child: imagePath == null
+          ? ColoredBox(
+              color: AppColors.darkSurface,
+              child: Center(child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+            )
+          : Image.asset(imagePath!, fit: BoxFit.cover),
     );
   }
 }

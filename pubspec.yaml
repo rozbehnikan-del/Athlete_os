@@ -59,7 +59,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
-    - assets/images/athleteos_showcase.png
+    - assets/images/
+    - assets/images/exercises/
+    - assets/images/professionals/
+    - assets/images/nutrition/
+    - assets/images/competition/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

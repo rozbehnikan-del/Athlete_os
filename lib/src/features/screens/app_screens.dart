@@ -47,7 +47,7 @@ class WelcomeScreen extends StatelessWidget {
             child: Image(
               image: AssetImage('assets/images/onboarding_hero.jpg'),
               fit: BoxFit.cover,
-              alignment: Alignment.center,
+              alignment: Alignment.topCenter,
             ),
           ),
           Positioned.fill(child: Container(color: Colors.black.withValues(alpha: .24))),
@@ -63,25 +63,55 @@ class WelcomeScreen extends StatelessWidget {
           ),
           SafeArea(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 28, 28, 30),
+              padding: const EdgeInsets.fromLTRB(28, 28, 28, 22),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
                       const _AthleteLogoMark(),
-                      const SizedBox(width: 10),
-                      Text(l.t('app'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 20)),
+                      const SizedBox(width: 14),
+                      Text(l.t('app'), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 22)),
                     ],
                   ),
                   const Spacer(),
-                  Text(l.t('heroTitle'), style: Theme.of(context).textTheme.displayLarge?.copyWith(color: Colors.white, fontSize: 40)),
+                  Text(
+                    l.t('heroTitle'),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 38,
+                      height: .96,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Text(
+                    l.t('heroSubtitle'),
+                    style: const TextStyle(
+                      color: Color(0xFFC3CAD0),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      height: 1.22,
+                      letterSpacing: 0,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  SizedBox(width: double.infinity, child: _OnboardingButton(label: l.t('getStarted'), onPressed: onGetStarted)),
                   const SizedBox(height: 14),
-                  Text(l.t('heroSubtitle'), style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.w600, height: 1.35)),
-                  const SizedBox(height: 28),
-                  SizedBox(width: double.infinity, child: PrimaryButton(label: l.t('getStarted'), onPressed: onGetStarted)),
-                  const SizedBox(height: 14),
-                  Center(child: TextButton(onPressed: () {}, child: Text('${l.t('signinPrompt')} ${l.t('signIn')}', style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.w700)))),
+                  Center(
+                    child: TextButton(
+                      onPressed: () {},
+                      child: Text(
+                        '${l.t('signinPrompt')} ${l.t('signIn')}',
+                        style: const TextStyle(
+                          color: Color(0xFFC3CAD0),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -95,7 +125,29 @@ class WelcomeScreen extends StatelessWidget {
 class _AthleteLogoMark extends StatelessWidget {
   const _AthleteLogoMark();
   @override
-  Widget build(BuildContext context) => SizedBox(width: 34, height: 28, child: CustomPaint(painter: _LogoPainter()));
+  Widget build(BuildContext context) => SizedBox(width: 48, height: 32, child: CustomPaint(painter: _LogoPainter()));
+}
+
+class _OnboardingButton extends StatelessWidget {
+  const _OnboardingButton({required this.label, required this.onPressed});
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+      label: Text(label),
+      style: FilledButton.styleFrom(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.brandBlack,
+        minimumSize: const Size(0, 50),
+        textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      ),
+    );
+  }
 }
 
 class _LogoPainter extends CustomPainter {
@@ -103,18 +155,19 @@ class _LogoPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final p = Paint()
       ..color = Colors.white
-      ..strokeWidth = 3
+      ..strokeWidth = 4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     final path = Path()
-      ..moveTo(1, size.height - 2)
-      ..lineTo(size.width * .28, 3)
-      ..lineTo(size.width * .50, size.height - 2)
-      ..lineTo(size.width * .66, 8)
-      ..lineTo(size.width - 1, size.height - 2);
+      ..moveTo(2, size.height - 3)
+      ..lineTo(size.width * .26, 4)
+      ..lineTo(size.width * .48, size.height - 3)
+      ..lineTo(size.width * .64, 8)
+      ..lineTo(size.width - 2, size.height - 3);
     canvas.drawPath(path, p);
-    canvas.drawLine(Offset(size.width * .22, size.height - 2), Offset(size.width * .42, size.height * .42), p);
+    canvas.drawLine(Offset(size.width * .20, size.height - 3), Offset(size.width * .39, size.height * .42), p);
+    canvas.drawLine(Offset(size.width * .36, size.height - 3), Offset(size.width * .54, size.height * .42), p);
   }
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
@@ -131,11 +184,11 @@ class HomeScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            const AthleteAvatar(label: 'A', imagePath: 'assets/images/athlete_ali_avatar.jpg'),
-            const SizedBox(width: 14),
+            const AthleteAvatar(label: 'A', size: 58, imagePath: 'assets/images/athlete_ali_avatar.jpg', showBorder: false),
+            const SizedBox(width: 16),
             Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(l.t('goodMorning'), style: const TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.w700)),
-              Text(l.t('ali'), style: Theme.of(context).textTheme.headlineLarge),
+              Text(l.t('goodMorning'), style: const TextStyle(color: Color(0xFF6F7A84), fontSize: 15, fontWeight: FontWeight.w700)),
+              Text(l.t('ali'), style: Theme.of(context).textTheme.headlineLarge?.copyWith(fontSize: 28, height: 1.05)),
             ])),
             IconButton.filledTonal(onPressed: () {}, icon: const Icon(Icons.notifications_none_rounded)),
           ]),

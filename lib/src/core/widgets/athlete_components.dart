@@ -19,9 +19,12 @@ class PrimaryButton extends StatelessWidget {
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.primaryGreen,
         foregroundColor: AppColors.brandBlack,
-        minimumSize: const Size(0, 54),
-        textStyle: Theme.of(context).textTheme.labelLarge,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.lg)),
+        minimumSize: const Size(0, 58),
+        textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontSize: 16,
+          fontWeight: FontWeight.w800,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }
@@ -66,10 +69,11 @@ class SectionHeader extends StatelessWidget {
 }
 
 class AthleteAvatar extends StatelessWidget {
-  const AthleteAvatar({super.key, this.label = 'A', this.size = 48, this.imagePath});
+  const AthleteAvatar({super.key, this.label = 'A', this.size = 48, this.imagePath, this.showBorder = true});
   final String label;
   final double size;
   final String? imagePath;
+  final bool showBorder;
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +82,7 @@ class AthleteAvatar extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size / 2),
-        border: Border.all(color: AppColors.primaryGreen, width: 2),
+        border: showBorder ? Border.all(color: AppColors.primaryGreen, width: 2) : null,
       ),
       clipBehavior: Clip.antiAlias,
       child: imagePath == null

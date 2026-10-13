@@ -9,5 +9,6 @@ final careTeamRepositoryProvider = Provider<CareTeamRepository>(
 );
 
 final professionalsProvider = FutureProvider<List<Professional>>(
-  (ref) => ref.watch(careTeamRepositoryProvider).getProfessionals('athlete-ali'),
+  (ref) =>
+      ref.watch(careTeamRepositoryProvider).getProfessionals('athlete-ali'),
 );

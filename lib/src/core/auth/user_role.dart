@@ -1,7 +1,1 @@
-enum UserRole {
-  athlete,
-  coach,
-  doctor,
-  nutritionist,
-  admin,
-}
+enum UserRole { athlete, coach, doctor, nutritionist, admin }

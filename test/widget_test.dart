@@ -32,4 +32,15 @@ void main() {
 
     expect(find.text('خانه'), findsWidgets);
   });
+
+  testWidgets('main navigation routes correctly', (tester) async {
+    await tester.pumpWidget(const ProviderScope(child: AthleteOSApp()));
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Progress'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Compare with similar athletes'), findsOneWidget);
+  });
 }

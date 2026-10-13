@@ -18,28 +18,50 @@ class MockWorkoutRepository implements WorkoutRepository {
     exercises: [
       ExercisePrescription(
         id: 'back-squat',
+        exerciseId: 'back-squat',
         name: 'Back Squat',
-        detail: '4 x 8 @ 80 kg',
-        imagePath: 'assets/images/exercises/back_squat.jpg',
+        category: 'Strength',
         sets: const [
-          ExerciseSet(1, 8, '80 kg', completed: true),
-          ExerciseSet(2, 8, '80 kg', completed: true),
-          ExerciseSet(3, 8, '80 kg'),
-          ExerciseSet(4, 8, '80 kg'),
+          ExerciseSet(
+            setNumber: 1,
+            targetReps: 8,
+            targetWeight: 80,
+            weightUnit: WeightUnit.kg,
+            completed: true,
+          ),
+          ExerciseSet(
+            setNumber: 2,
+            targetReps: 8,
+            targetWeight: 80,
+            weightUnit: WeightUnit.kg,
+            completed: true,
+          ),
+          ExerciseSet(
+            setNumber: 3,
+            targetReps: 8,
+            targetWeight: 80,
+            weightUnit: WeightUnit.kg,
+          ),
+          ExerciseSet(
+            setNumber: 4,
+            targetReps: 8,
+            targetWeight: 80,
+            weightUnit: WeightUnit.kg,
+          ),
         ],
       ),
       ExercisePrescription(
         id: 'romanian-deadlift',
+        exerciseId: 'romanian-deadlift',
         name: 'Romanian Deadlift',
-        detail: '4 x 10 @ 60 kg',
-        imagePath: 'assets/images/exercises/romanian_deadlift.jpg',
+        category: 'Strength',
         sets: const [],
       ),
       ExercisePrescription(
         id: 'walking-lunges',
+        exerciseId: 'walking-lunges',
         name: 'Walking Lunges',
-        detail: '3 x 12 @ 20 kg',
-        imagePath: 'assets/images/exercises/walking_lunges.jpg',
+        category: 'Strength',
         sets: const [],
       ),
     ],
@@ -50,5 +72,6 @@ class MockWorkoutRepository implements WorkoutRepository {
     _submittedResults.add(result);
   }
 
-  List<WorkoutResult> get submittedResults => List.unmodifiable(_submittedResults);
+  List<WorkoutResult> get submittedResults =>
+      List.unmodifiable(_submittedResults);
 }

@@ -5,36 +5,40 @@ import 'exercise_set.dart';
 class ExercisePrescription {
   ExercisePrescription({
     required this.id,
+    required this.exerciseId,
     required this.name,
-    required this.detail,
-    required this.imagePath,
     required Iterable<ExerciseSet> sets,
+    this.category,
+    this.coachingNote,
   }) : _sets = List.unmodifiable(sets);
 
   final String id;
+  final String exerciseId;
   final String name;
-  final String detail;
-  final String imagePath;
+  final String? category;
+  final String? coachingNote;
   final List<ExerciseSet> _sets;
 
   List<ExerciseSet> get sets => List.unmodifiable(_sets);
 
   ExercisePrescription revise({
     required UserRole actor,
-    String? detail,
+    String? category,
+    String? coachingNote,
     Iterable<ExerciseSet>? sets,
   }) {
-    if (actor == UserRole.athlete) {
+    if (actor != UserRole.coach && actor != UserRole.admin) {
       throw const UnauthorizedOperationException(
-        'Athletes cannot modify coach-owned exercise prescriptions.',
+        'Only coaches and admins can modify coach-owned exercise prescriptions.',
       );
     }
 
     return ExercisePrescription(
       id: id,
+      exerciseId: exerciseId,
       name: name,
-      detail: detail ?? this.detail,
-      imagePath: imagePath,
+      category: category ?? this.category,
+      coachingNote: coachingNote ?? this.coachingNote,
       sets: sets ?? _sets,
     );
   }

@@ -7,27 +7,92 @@ import 'package:athlete_os/src/features/training/domain/entities/workout_result.
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('athlete cannot modify coach-owned exercise prescription', () {
-    final prescription = ExercisePrescription(
-      id: 'back-squat',
-      name: 'Back Squat',
-      detail: '4 x 8 @ 80 kg',
-      imagePath: 'assets/images/exercises/back_squat.jpg',
-      sets: const [ExerciseSet(1, 8, '80 kg')],
-    );
+  ExercisePrescription prescription() => ExercisePrescription(
+    id: 'back-squat-prescription',
+    exerciseId: 'back-squat',
+    name: 'Back Squat',
+    category: 'Strength',
+    sets: const [
+      ExerciseSet(
+        setNumber: 1,
+        targetReps: 8,
+        targetWeight: 80,
+        weightUnit: WeightUnit.kg,
+      ),
+    ],
+  );
 
+  test('athlete cannot modify coach-owned exercise prescription', () {
     expect(
-      () => prescription.revise(actor: UserRole.athlete, detail: '3 x 5 @ 90 kg'),
+      () => prescription().revise(actor: UserRole.athlete, category: 'Power'),
       throwsA(isA<UnauthorizedOperationException>()),
     );
   });
 
-  test('athlete can submit an actual workout result', () async {
+  test('doctor cannot modify coach-owned exercise prescription', () {
+    expect(
+      () => prescription().revise(actor: UserRole.doctor, category: 'Power'),
+      throwsA(isA<UnauthorizedOperationException>()),
+    );
+  });
+
+  test('nutritionist cannot modify coach-owned exercise prescription', () {
+    expect(
+      () => prescription().revise(
+        actor: UserRole.nutritionist,
+        category: 'Power',
+      ),
+      throwsA(isA<UnauthorizedOperationException>()),
+    );
+  });
+
+  test('coach can modify coach-owned exercise prescription', () {
+    final revised = prescription().revise(
+      actor: UserRole.coach,
+      category: 'Power',
+    );
+
+    expect(revised.category, 'Power');
+  });
+
+  test('admin can modify coach-owned exercise prescription', () {
+    final revised = prescription().revise(
+      actor: UserRole.admin,
+      category: 'Power',
+    );
+
+    expect(revised.category, 'Power');
+  });
+
+  test('ExerciseSet stores structured numeric target values', () {
+    const set = ExerciseSet(
+      setNumber: 1,
+      targetReps: 8,
+      targetWeight: 80,
+      weightUnit: WeightUnit.kg,
+    );
+
+    expect(set.targetWeight, 80);
+    expect(set.weightUnit, WeightUnit.kg);
+  });
+
+  test('athlete can submit actual workout results', () async {
     final repository = MockWorkoutRepository();
-    const result = WorkoutResult(
+    final result = WorkoutResult(
       workoutId: 'today-lower-strength',
       athleteId: 'athlete-ali',
-      completedSetIds: ['back-squat-1'],
+      completedAt: DateTime.utc(2026, 10, 13),
+      setResults: const [
+        SetResult(
+          exerciseId: 'back-squat',
+          setNumber: 1,
+          actualReps: 8,
+          actualWeight: 80,
+          weightUnit: WeightUnit.kg,
+          completed: true,
+          rpe: 7.5,
+        ),
+      ],
       notes: 'Felt strong.',
     );
 
@@ -36,13 +101,16 @@ void main() {
     expect(repository.submittedResults, contains(result));
   });
 
-  test('MockWorkoutRepository returns expected workout data', () async {
+  test('MockWorkoutRepository returns structured workout data', () async {
     final repository = MockWorkoutRepository();
 
     final workout = await repository.getTodayWorkout('athlete-ali');
+    final firstSet = workout.exercises.first.sets.first;
 
     expect(workout.id, 'today-lower-strength');
-    expect(workout.exercises.first.name, 'Back Squat');
-    expect(workout.exercises.first.sets.length, 4);
+    expect(workout.exercises.first.exerciseId, 'back-squat');
+    expect(firstSet.targetReps, 8);
+    expect(firstSet.targetWeight, 80);
+    expect(firstSet.weightUnit, WeightUnit.kg);
   });
 }

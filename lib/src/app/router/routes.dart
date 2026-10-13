@@ -14,4 +14,6 @@ class AppRoutes {
   static const settings = '/settings';
   static const records = '/records';
   static const messages = '/messages';
+
+  static String workoutPath(String workoutId) => '/training/workout/$workoutId';
 }

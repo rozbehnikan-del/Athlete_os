@@ -214,4 +214,59 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get readiness => 'Training Readiness';
+
+  @override
+  String get training => 'Training';
+
+  @override
+  String get exercise => 'Exercise';
+
+  @override
+  String get ofLabel => 'of';
+
+  @override
+  String get setsCompleted => 'sets completed';
+
+  @override
+  String get coachTarget => 'Coach target';
+
+  @override
+  String get actualReps => 'Actual reps';
+
+  @override
+  String get actualWeight => 'Actual weight';
+
+  @override
+  String get rpe => 'RPE';
+
+  @override
+  String get workoutNote => 'Workout note';
+
+  @override
+  String get previousSet => 'Previous Set';
+
+  @override
+  String get completed => 'Completed';
+
+  @override
+  String get invalidPerformanceInput =>
+      'Check reps, weight, and RPE before completing the set.';
+
+  @override
+  String get workoutComplete => 'Workout complete';
+
+  @override
+  String get averageRpe => 'Average RPE';
+
+  @override
+  String get finishWorkout => 'Finish Workout';
+
+  @override
+  String get workoutSaved => 'Workout saved';
+
+  @override
+  String get continueEditing => 'Continue Editing';
+
+  @override
+  String get noWorkoutHistory => 'No completed workouts yet';
 }

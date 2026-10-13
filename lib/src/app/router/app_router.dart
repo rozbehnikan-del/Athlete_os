@@ -52,6 +52,11 @@ GoRouter createAppRouter({
                 path: AppRoutes.training,
                 builder: (context, state) => const WorkoutScreen(),
               ),
+              GoRoute(
+                path: AppRoutes.workout,
+                builder: (context, state) =>
+                    WorkoutScreen(workoutId: state.pathParameters['id']),
+              ),
             ],
           ),
           StatefulShellBranch(

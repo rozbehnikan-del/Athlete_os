@@ -8,6 +8,11 @@ String exerciseImagePath(String exerciseId) => switch (exerciseId) {
   _ => 'assets/images/exercises/back_squat.jpg',
 };
 
+String exerciseHeroImagePath(String exerciseId) => switch (exerciseId) {
+  'back-squat' => 'assets/images/exercises/back_squat_hero.jpg',
+  _ => exerciseImagePath(exerciseId),
+};
+
 String weightUnitLabel(WeightUnit unit) => switch (unit) {
   WeightUnit.kg => 'kg',
   WeightUnit.lb => 'lb',

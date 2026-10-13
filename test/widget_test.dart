@@ -52,4 +52,91 @@ void main() {
 
     expect(find.text('Back Squat').hitTestable(), findsOneWidget);
   });
+
+  testWidgets('Start Workout navigates to workout session', (tester) async {
+    await setMobileViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: AthleteOSApp()));
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Workout').hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Coach target').hitTestable(), findsOneWidget);
+    expect(find.text('Back Squat').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('Completing and editing a set updates UI', (tester) async {
+    await setMobileViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: AthleteOSApp()));
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Workout').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).first, '7');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Complete Set').hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Set 2 of 4').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('Navigation through sets and exercises works', (tester) async {
+    await setMobileViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: AthleteOSApp()));
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Workout').hitTestable());
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 4; i++) {
+      await tester.tap(find.text('Complete Set').hitTestable());
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Romanian Deadlift').hitTestable(), findsOneWidget);
+    expect(find.text('Exercise 2 of 3').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('Finish Workout confirmation appears', (tester) async {
+    await setMobileViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: AthleteOSApp()));
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Workout').hitTestable());
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 10; i++) {
+      await tester.tap(find.text('Complete Set').hitTestable());
+      await tester.pumpAndSettle();
+    }
+
+    expect(find.text('Workout complete').hitTestable(), findsOneWidget);
+    expect(find.text('Finish Workout').hitTestable(), findsOneWidget);
+  });
+
+  testWidgets('Completed workout appears in History', (tester) async {
+    await setMobileViewport(tester);
+    await tester.pumpWidget(const ProviderScope(child: AthleteOSApp()));
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Start Workout').hitTestable());
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 10; i++) {
+      await tester.tap(find.text('Complete Set').hitTestable());
+      await tester.pumpAndSettle();
+    }
+    await tester.tap(find.text('Finish Workout').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.fitness_center_rounded).hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text("Today's Workout").hitTestable(), findsOneWidget);
+    expect(
+      find.textContaining('10 sets completed').hitTestable(),
+      findsOneWidget,
+    );
+  });
 }

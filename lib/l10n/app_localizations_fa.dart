@@ -214,4 +214,59 @@ class AppLocalizationsFa extends AppLocalizations {
 
   @override
   String get readiness => 'آمادگی تمرین';
+
+  @override
+  String get training => 'تمرین';
+
+  @override
+  String get exercise => 'حرکت';
+
+  @override
+  String get ofLabel => 'از';
+
+  @override
+  String get setsCompleted => 'ست کامل شده';
+
+  @override
+  String get coachTarget => 'هدف مربی';
+
+  @override
+  String get actualReps => 'تکرار واقعی';
+
+  @override
+  String get actualWeight => 'وزن واقعی';
+
+  @override
+  String get rpe => 'RPE';
+
+  @override
+  String get workoutNote => 'یادداشت تمرین';
+
+  @override
+  String get previousSet => 'ست قبلی';
+
+  @override
+  String get completed => 'کامل شد';
+
+  @override
+  String get invalidPerformanceInput =>
+      'تکرار، وزن و RPE را قبل از تکمیل ست بررسی کنید.';
+
+  @override
+  String get workoutComplete => 'تمرین کامل شد';
+
+  @override
+  String get averageRpe => 'میانگین RPE';
+
+  @override
+  String get finishWorkout => 'پایان تمرین';
+
+  @override
+  String get workoutSaved => 'تمرین ذخیره شد';
+
+  @override
+  String get continueEditing => 'ادامه ویرایش';
+
+  @override
+  String get noWorkoutHistory => 'هنوز تمرین کاملی ثبت نشده است';
 }

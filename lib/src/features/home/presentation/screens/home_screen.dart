@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../core/responsive/responsive.dart';
@@ -12,6 +13,7 @@ import '../../../../core/widgets/progress_ring.dart';
 import '../../../../core/widgets/responsive_grid.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../../../core/widgets/status_badge.dart';
+import '../../../../app/router/routes.dart';
 import '../../../training/application/controllers/workout_controller.dart';
 import '../../../training/domain/entities/exercise_prescription.dart';
 import '../../../training/presentation/training_formatters.dart';
@@ -211,6 +213,7 @@ class _TodayWorkoutCard extends ConsumerWidget {
               child: PrimaryButton(
                 label: l.startWorkout,
                 icon: Icons.arrow_forward_rounded,
+                onPressed: () => context.go(AppRoutes.workoutPath(workout.id)),
               ),
             ),
           ],

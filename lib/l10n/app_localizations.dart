@@ -511,6 +511,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Training Readiness'**
   String get readiness;
+
+  /// No description provided for @training.
+  ///
+  /// In en, this message translates to:
+  /// **'Training'**
+  String get training;
+
+  /// No description provided for @exercise.
+  ///
+  /// In en, this message translates to:
+  /// **'Exercise'**
+  String get exercise;
+
+  /// No description provided for @ofLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'of'**
+  String get ofLabel;
+
+  /// No description provided for @setsCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'sets completed'**
+  String get setsCompleted;
+
+  /// No description provided for @coachTarget.
+  ///
+  /// In en, this message translates to:
+  /// **'Coach target'**
+  String get coachTarget;
+
+  /// No description provided for @actualReps.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual reps'**
+  String get actualReps;
+
+  /// No description provided for @actualWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'Actual weight'**
+  String get actualWeight;
+
+  /// No description provided for @rpe.
+  ///
+  /// In en, this message translates to:
+  /// **'RPE'**
+  String get rpe;
+
+  /// No description provided for @workoutNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout note'**
+  String get workoutNote;
+
+  /// No description provided for @previousSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Previous Set'**
+  String get previousSet;
+
+  /// No description provided for @completed.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get completed;
+
+  /// No description provided for @invalidPerformanceInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Check reps, weight, and RPE before completing the set.'**
+  String get invalidPerformanceInput;
+
+  /// No description provided for @workoutComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout complete'**
+  String get workoutComplete;
+
+  /// No description provided for @averageRpe.
+  ///
+  /// In en, this message translates to:
+  /// **'Average RPE'**
+  String get averageRpe;
+
+  /// No description provided for @finishWorkout.
+  ///
+  /// In en, this message translates to:
+  /// **'Finish Workout'**
+  String get finishWorkout;
+
+  /// No description provided for @workoutSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Workout saved'**
+  String get workoutSaved;
+
+  /// No description provided for @continueEditing.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue Editing'**
+  String get continueEditing;
+
+  /// No description provided for @noWorkoutHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'No completed workouts yet'**
+  String get noWorkoutHistory;
 }
 
 class _AppLocalizationsDelegate

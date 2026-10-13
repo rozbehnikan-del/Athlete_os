@@ -7,8 +7,16 @@ import '../../app/router/routes.dart';
 import '../../core/localization/localization_extensions.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_theme.dart';
-import '../screens/app_screens.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../care_team/presentation/screens/care_team_screen.dart';
+import '../competition/presentation/screens/competition_screen.dart';
+import '../health/presentation/screens/health_screen.dart';
+import '../home/presentation/screens/home_screen.dart';
+import '../more/presentation/screens/more_screen.dart';
+import '../nutrition/presentation/screens/nutrition_screen.dart';
+import '../onboarding/presentation/screens/welcome_screen.dart';
+import '../progress/presentation/screens/progress_screen.dart';
+import '../training/presentation/screens/workout_screen.dart';
 
 class AthleteAppShell extends ConsumerStatefulWidget {
   const AthleteAppShell({super.key, required this.onLocaleChanged, required this.locale});

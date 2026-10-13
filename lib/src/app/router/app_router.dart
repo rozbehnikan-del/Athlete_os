@@ -1,7 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/screens/app_screens.dart';
+import '../../features/care_team/presentation/screens/care_team_screen.dart';
+import '../../features/competition/presentation/screens/competition_screen.dart';
+import '../../features/health/presentation/screens/health_screen.dart';
+import '../../features/more/presentation/screens/more_screen.dart';
 import '../../features/shell/athlete_app_shell.dart';
 import 'routes.dart';
 

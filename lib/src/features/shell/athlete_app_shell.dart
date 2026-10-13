@@ -1,28 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
-import '../../core/localization/app_localizations.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../app/application/onboarding_controller.dart';
+import '../../app/router/routes.dart';
+import '../../core/localization/localization_extensions.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_theme.dart';
 import '../screens/app_screens.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class AthleteAppShell extends StatefulWidget {
+class AthleteAppShell extends ConsumerStatefulWidget {
   const AthleteAppShell({super.key, required this.onLocaleChanged, required this.locale});
   final ValueChanged<Locale> onLocaleChanged;
   final Locale locale;
 
   @override
-  State<AthleteAppShell> createState() => _AthleteAppShellState();
+  ConsumerState<AthleteAppShell> createState() => _AthleteAppShellState();
 }
 
-class _AthleteAppShellState extends State<AthleteAppShell> {
+class _AthleteAppShellState extends ConsumerState<AthleteAppShell> {
   int _index = 0;
-  bool _onboarded = false;
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    if (!_onboarded) {
-      return WelcomeScreen(onGetStarted: () => setState(() => _onboarded = true));
+    final l = AppLocalizations.of(context)!;
+    final onboarded = ref.watch(onboardingControllerProvider);
+    if (!onboarded) {
+      return WelcomeScreen(
+        onGetStarted: ref.read(onboardingControllerProvider.notifier).complete,
+      );
     }
     final destinations = [
       _Destination(l.t('home'), Icons.home_rounded, const HomeScreen()),
@@ -86,7 +93,18 @@ class _AthleteAppShellState extends State<AthleteAppShell> {
   }
 
   void _openSecondary(Widget screen) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    switch (screen) {
+      case CareTeamScreen():
+        context.push(AppRoutes.careTeam);
+      case HealthScreen():
+        context.push(AppRoutes.health);
+      case CompetitionScreen():
+        context.push(AppRoutes.competition);
+      case PlaceholderScreen(title: 'Profile'):
+        context.push(AppRoutes.profile);
+      default:
+        Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+    }
   }
 }
 

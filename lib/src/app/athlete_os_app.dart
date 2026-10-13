@@ -1,31 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
-import '../core/localization/app_localizations.dart';
+import '../../l10n/app_localizations.dart';
+import 'application/app_locale_controller.dart';
+import 'router/app_router.dart';
 import '../core/theme/app_theme.dart';
-import '../features/shell/athlete_app_shell.dart';
 
-class AthleteOSApp extends StatefulWidget {
+class AthleteOSApp extends ConsumerWidget {
   const AthleteOSApp({super.key});
 
   @override
-  State<AthleteOSApp> createState() => _AthleteOSAppState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final locale = ref.watch(appLocaleControllerProvider);
+    final router = createAppRouter(
+      locale: locale,
+      onLocaleChanged: ref.read(appLocaleControllerProvider.notifier).setLocale,
+    );
 
-class _AthleteOSAppState extends State<AthleteOSApp> {
-  Locale _locale = const Locale('en');
-
-  void _setLocale(Locale locale) {
-    setState(() => _locale = locale);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'AthleteOS',
+      onGenerateTitle: (context) => AppLocalizations.of(context)!.app,
       theme: AppTheme.light,
-      locale: _locale,
+      locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [
         AppLocalizations.delegate,
@@ -33,7 +30,7 @@ class _AthleteOSAppState extends State<AthleteOSApp> {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      home: AthleteAppShell(onLocaleChanged: _setLocale, locale: _locale),
+      routerConfig: router,
     );
   }
 }

@@ -1,10 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../core/localization/app_localizations.dart';
+import '../../../l10n/app_localizations.dart';
+import '../../core/localization/localization_extensions.dart';
 import '../../core/responsive/responsive.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/athlete_components.dart';
-import '../../data/mock_data.dart';
+import '../care_team/application/care_team_providers.dart';
+import '../care_team/domain/entities/professional.dart';
+import '../nutrition/application/nutrition_providers.dart';
+import '../nutrition/domain/entities/meal.dart';
+import '../progress/domain/progress_metrics.dart';
+import '../training/application/controllers/workout_controller.dart';
+import '../training/domain/entities/exercise_prescription.dart';
+import '../training/domain/entities/exercise_set.dart';
 
 class PageShell extends StatelessWidget {
   const PageShell({super.key, required this.child, this.dark = false});
@@ -37,7 +46,7 @@ class WelcomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: AppColors.brandBlack,
       body: Stack(
@@ -177,7 +186,7 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final wide = windowClassOf(context) != WindowClass.compact;
     return PageShell(
       child: Column(
@@ -232,15 +241,19 @@ class _DateSelector extends StatelessWidget {
   }
 }
 
-class _WorkoutCard extends StatelessWidget {
+class _WorkoutCard extends ConsumerWidget {
   const _WorkoutCard();
   @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context)!;
+    final workout = ref.watch(workoutControllerProvider);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadii.xl), border: Border.all(color: AppColors.line)),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: workout.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Text('$error', style: const TextStyle(color: AppColors.red)),
+        data: (workout) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(l.t('todaysWorkout'), style: Theme.of(context).textTheme.titleLarge),
@@ -251,7 +264,7 @@ class _WorkoutCard extends StatelessWidget {
         const SizedBox(height: 8),
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Expanded(child: Column(children: [
-            for (var i = 0; i < exercises.length; i++) _ExerciseLine(exercise: exercises[i], complete: i == 0),
+            for (var i = 0; i < workout.exercises.length; i++) _ExerciseLine(exercise: workout.exercises[i], complete: i == 0),
           ])),
           const SizedBox(width: 8),
           const ProgressRing(value: .75, size: 58),
@@ -259,13 +272,14 @@ class _WorkoutCard extends StatelessWidget {
         const SizedBox(height: 12),
         SizedBox(width: double.infinity, child: PrimaryButton(label: l.t('startWorkout'), icon: Icons.arrow_forward_rounded)),
       ]),
+      ),
     );
   }
 }
 
 class _ExerciseLine extends StatelessWidget {
   const _ExerciseLine({required this.exercise, this.complete = false});
-  final Exercise exercise;
+  final ExercisePrescription exercise;
   final bool complete;
   @override
   Widget build(BuildContext context) {
@@ -295,7 +309,7 @@ class _ReadinessCard extends StatelessWidget {
   const _ReadinessCard();
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadii.xl), border: Border.all(color: AppColors.line)),
@@ -312,14 +326,18 @@ class _ReadinessCard extends StatelessWidget {
   }
 }
 
-class WorkoutScreen extends StatelessWidget {
+class WorkoutScreen extends ConsumerWidget {
   const WorkoutScreen({super.key});
   @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context)!;
+    final workout = ref.watch(workoutControllerProvider);
     return PageShell(
       dark: true,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      child: workout.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stackTrace) => Text('$error', style: const TextStyle(color: Colors.white)),
+        data: (workout) => Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text(l.t('backSquat'), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
         const SizedBox(height: 14),
         _Tabs(labels: [l.t('overview'), l.t('history'), l.t('video'), l.t('notes')], dark: true),
@@ -351,12 +369,13 @@ class WorkoutScreen extends StatelessWidget {
           child: Column(children: [
             Row(children: [Expanded(child: Text(l.t('set'), style: _tableHead)), Expanded(child: Text(l.t('reps'), style: _tableHead)), Expanded(child: Text(l.t('weight'), style: _tableHead)), const SizedBox(width: 34)]),
             const Divider(color: Colors.white12),
-            for (final set in exercises.first.sets) _SetRow(set: set),
+            for (final set in workout.exercises.first.sets) _SetRow(set: set),
           ]),
         ),
         const SizedBox(height: 16),
         Row(children: [Expanded(child: SecondaryButton(label: l.t('addSet'), dark: true)), const SizedBox(width: 12), Expanded(child: PrimaryButton(label: l.t('completeSet'), icon: Icons.check_rounded))]),
       ]),
+      ),
     );
   }
 }
@@ -384,7 +403,7 @@ class ProgressScreen extends StatelessWidget {
   const ProgressScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final wide = windowClassOf(context) != WindowClass.compact;
     return PageShell(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l.t('progress'), style: Theme.of(context).textTheme.headlineLarge),
@@ -464,15 +483,20 @@ class _PhotoBox extends StatelessWidget {
   Widget build(BuildContext context) => AspectRatio(aspectRatio: .78, child: Container(alignment: Alignment.bottomCenter, padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: AppColors.darkSurface, borderRadius: BorderRadius.circular(AppRadii.md)), child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800))));
 }
 
-class CareTeamScreen extends StatelessWidget {
+class CareTeamScreen extends ConsumerWidget {
   const CareTeamScreen({super.key});
   @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context)!;
+    final professionals = ref.watch(professionalsProvider);
     return PageShell(dark: true, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l.t('careTeam'), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
       const SizedBox(height: 18),
-      for (final p in professionals) _ProfessionalCard(p: p),
+      ...professionals.when(
+        loading: () => [const Center(child: CircularProgressIndicator())],
+        error: (error, stackTrace) => [Text('$error', style: const TextStyle(color: Colors.white))],
+        data: (items) => [for (final p in items) _ProfessionalCard(p: p)],
+      ),
       const SizedBox(height: 12),
       MetricCard(title: l.t('nextCheckIn'), value: 'Mon, Jun 22, 2026', icon: Icons.event_rounded, dark: true),
       const SizedBox(height: 12),
@@ -494,7 +518,7 @@ class _ProfessionalCard extends StatelessWidget {
   final Professional p;
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(padding: const EdgeInsets.all(16), decoration: _darkBox(), child: Row(children: [
@@ -511,7 +535,7 @@ class HealthScreen extends StatelessWidget {
   const HealthScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final wide = windowClassOf(context) != WindowClass.compact;
     return PageShell(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l.t('health'), style: Theme.of(context).textTheme.headlineLarge),
@@ -538,11 +562,12 @@ class HealthScreen extends StatelessWidget {
   }
 }
 
-class NutritionScreen extends StatelessWidget {
+class NutritionScreen extends ConsumerWidget {
   const NutritionScreen({super.key});
   @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context)!;
+    final meals = ref.watch(todayMealsProvider);
     return PageShell(dark: true, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l.t('nutrition'), style: Theme.of(context).textTheme.headlineLarge?.copyWith(color: Colors.white)),
       const SizedBox(height: 18),
@@ -561,7 +586,11 @@ class NutritionScreen extends StatelessWidget {
       const SizedBox(height: 18),
       _Tabs(labels: [l.t('today'), l.t('mealPlan')], dark: true),
       const SizedBox(height: 14),
-      for (final meal in meals) _MealCard(meal: meal),
+      ...meals.when(
+        loading: () => [const Center(child: CircularProgressIndicator())],
+        error: (error, stackTrace) => [Text('$error', style: const TextStyle(color: Colors.white))],
+        data: (items) => [for (final meal in items) _MealCard(meal: meal)],
+      ),
     ]));
   }
 }
@@ -581,7 +610,7 @@ class _MealCard extends StatelessWidget {
   final Meal meal;
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(padding: const EdgeInsets.all(16), decoration: _darkBox(), child: Row(children: [
@@ -605,7 +634,7 @@ class CompetitionScreen extends StatelessWidget {
   const CompetitionScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     return PageShell(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(l.t('competition'), style: Theme.of(context).textTheme.headlineLarge),
       const SizedBox(height: 14),
@@ -659,7 +688,7 @@ class MoreScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
+    final l = AppLocalizations.of(context)!;
     final items = [
       (l.t('careTeam'), Icons.groups_rounded, const CareTeamScreen()),
       (l.t('health'), Icons.health_and_safety_rounded, const HealthScreen()),

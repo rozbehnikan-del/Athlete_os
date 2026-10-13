@@ -50,7 +50,9 @@ GoRouter createAppRouter({
             routes: [
               GoRoute(
                 path: AppRoutes.training,
-                builder: (context, state) => const WorkoutScreen(),
+                builder: (context, state) => WorkoutScreen(
+                  initialHistory: state.uri.queryParameters['tab'] == 'history',
+                ),
               ),
               GoRoute(
                 path: AppRoutes.workout,

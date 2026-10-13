@@ -16,37 +16,47 @@ final workoutSessionControllerProvider =
 
 class SetResultDraft {
   const SetResultDraft({
+    required this.prescriptionId,
     required this.exerciseId,
     required this.setNumber,
-    required this.actualReps,
-    required this.actualWeight,
+    required this.repsInput,
+    required this.weightInput,
     required this.weightUnit,
     this.completed = false,
     this.rpe,
     this.notes,
   });
 
+  final String prescriptionId;
   final String exerciseId;
   final int setNumber;
-  final int actualReps;
-  final double actualWeight;
+  final String repsInput;
+  final String weightInput;
   final WeightUnit weightUnit;
   final bool completed;
   final double? rpe;
   final String? notes;
 
+  int? get actualReps => int.tryParse(repsInput);
+  double? get actualWeight => double.tryParse(weightInput);
+  bool get hasValidReps => actualReps != null && actualReps! >= 0;
+  bool get hasValidWeight => actualWeight != null && actualWeight! >= 0;
+  bool get hasValidRpe => rpe == null || (rpe! >= 1 && rpe! <= 10);
+  bool get isValid => hasValidReps && hasValidWeight && hasValidRpe;
+
   SetResultDraft copyWith({
-    int? actualReps,
-    double? actualWeight,
+    String? repsInput,
+    String? weightInput,
     bool? completed,
     double? rpe,
     String? notes,
   }) {
     return SetResultDraft(
+      prescriptionId: prescriptionId,
       exerciseId: exerciseId,
       setNumber: setNumber,
-      actualReps: actualReps ?? this.actualReps,
-      actualWeight: actualWeight ?? this.actualWeight,
+      repsInput: repsInput ?? this.repsInput,
+      weightInput: weightInput ?? this.weightInput,
       weightUnit: weightUnit,
       completed: completed ?? this.completed,
       rpe: rpe ?? this.rpe,
@@ -55,10 +65,11 @@ class SetResultDraft {
   }
 
   SetResult toResult() => SetResult(
+    prescriptionId: prescriptionId,
     exerciseId: exerciseId,
     setNumber: setNumber,
-    actualReps: actualReps,
-    actualWeight: actualWeight,
+    actualReps: actualReps!,
+    actualWeight: actualWeight!,
     weightUnit: weightUnit,
     completed: completed,
     rpe: rpe,
@@ -89,7 +100,7 @@ class WorkoutSessionState {
       workout.exercises[currentExerciseIndex];
   ExerciseSet get currentSet => currentExercise.sets[currentSetIndex];
   String get currentDraftKey =>
-      draftKey(currentExercise.exerciseId, currentSet.setNumber);
+      draftKey(currentExercise.id, currentSet.setNumber);
   SetResultDraft get currentDraft => drafts[currentDraftKey]!;
   int get totalSets => workout.exercises.fold(
     0,
@@ -144,7 +155,8 @@ class WorkoutSessionState {
   }
 }
 
-String draftKey(String exerciseId, int setNumber) => '$exerciseId:$setNumber';
+String draftKey(String prescriptionId, int setNumber) =>
+    '$prescriptionId:$setNumber';
 
 class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
   WorkoutSessionController(this.workoutId);
@@ -162,11 +174,14 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
     final drafts = <String, SetResultDraft>{};
     for (final exercise in workout.exercises) {
       for (final set in exercise.sets) {
-        drafts[draftKey(exercise.exerciseId, set.setNumber)] = SetResultDraft(
+        drafts[draftKey(exercise.id, set.setNumber)] = SetResultDraft(
+          prescriptionId: exercise.id,
           exerciseId: exercise.exerciseId,
           setNumber: set.setNumber,
-          actualReps: set.targetReps,
-          actualWeight: set.targetWeight,
+          repsInput: set.targetReps.toString(),
+          weightInput: set.targetWeight == set.targetWeight.roundToDouble()
+              ? set.targetWeight.round().toString()
+              : set.targetWeight.toStringAsFixed(1),
           weightUnit: set.weightUnit,
         );
       }
@@ -187,7 +202,11 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
         'Actual reps must be at least 0.',
       );
     }
-    _updateCurrentDraft((draft) => draft.copyWith(actualReps: reps));
+    _updateCurrentDraft((draft) => draft.copyWith(repsInput: reps.toString()));
+  }
+
+  void updateActualRepsInput(String input) {
+    _updateCurrentDraft((draft) => draft.copyWith(repsInput: input));
   }
 
   void updateActualWeight(double weight) {
@@ -198,7 +217,13 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
         'Actual weight must be at least 0.',
       );
     }
-    _updateCurrentDraft((draft) => draft.copyWith(actualWeight: weight));
+    _updateCurrentDraft(
+      (draft) => draft.copyWith(weightInput: weight.toString()),
+    );
+  }
+
+  void updateActualWeightInput(String input) {
+    _updateCurrentDraft((draft) => draft.copyWith(weightInput: input));
   }
 
   void updateRpe(double? rpe) {
@@ -214,9 +239,13 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
   }
 
   void completeCurrentSet() {
-    _updateCurrentDraft((draft) => draft.copyWith(completed: true));
     final current = state.requireValue;
-    if (!current.isLastSet) {
+    if (!current.currentDraft.isValid) {
+      throw StateError('Current set has invalid performance input.');
+    }
+    _updateCurrentDraft((draft) => draft.copyWith(completed: true));
+    final updated = state.requireValue;
+    if (!updated.isLastSet) {
       nextSet();
     }
   }

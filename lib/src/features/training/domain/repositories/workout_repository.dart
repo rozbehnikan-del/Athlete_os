@@ -1,4 +1,5 @@
 import '../entities/workout.dart';
+import '../entities/workout_history_entry.dart';
 import '../entities/workout_result.dart';
 
 abstract interface class WorkoutRepository {
@@ -11,5 +12,5 @@ abstract interface class WorkoutRepository {
 
   Future<void> submitWorkoutResult(WorkoutResult result);
 
-  Future<List<WorkoutResult>> getWorkoutHistory(String athleteId);
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory(String athleteId);
 }

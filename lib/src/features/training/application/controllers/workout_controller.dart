@@ -1,13 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/entities/workout.dart';
+import '../../domain/entities/workout_history_entry.dart';
 import '../../domain/entities/workout_result.dart';
 import '../workout_providers.dart';
 
 final workoutControllerProvider =
     AsyncNotifierProvider<WorkoutController, Workout>(WorkoutController.new);
 
-final workoutHistoryProvider = FutureProvider<List<WorkoutResult>>(
+final workoutHistoryProvider = FutureProvider<List<WorkoutHistoryEntry>>(
   (ref) => ref
       .watch(workoutRepositoryProvider)
       .getWorkoutHistory(WorkoutController.athleteId),

@@ -2,6 +2,7 @@ import 'exercise_set.dart';
 
 class SetResult {
   const SetResult({
+    required this.prescriptionId,
     required this.exerciseId,
     required this.setNumber,
     required this.actualReps,
@@ -12,6 +13,7 @@ class SetResult {
     this.notes,
   });
 
+  final String prescriptionId;
   final String exerciseId;
   final int setNumber;
   final int actualReps;

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../../l10n/app_localizations.dart';
+import '../../../../app/router/routes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/page_shell.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -13,13 +15,14 @@ import '../../../../core/widgets/surface_decoration.dart';
 import '../../../../core/widgets/tab_selector.dart';
 import '../../application/controllers/workout_controller.dart';
 import '../../application/controllers/workout_session_controller.dart';
-import '../../domain/entities/workout_result.dart';
+import '../../domain/entities/workout_history_entry.dart';
 import '../training_formatters.dart';
 
 class WorkoutScreen extends ConsumerStatefulWidget {
-  const WorkoutScreen({super.key, this.workoutId});
+  const WorkoutScreen({super.key, this.workoutId, this.initialHistory = false});
 
   final String? workoutId;
+  final bool initialHistory;
 
   @override
   ConsumerState<WorkoutScreen> createState() => _WorkoutScreenState();
@@ -30,6 +33,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   final _weightController = TextEditingController();
   final _noteController = TextEditingController();
   String? _draftKey;
+  late int _trainingTab = widget.initialHistory ? 1 : 0;
 
   @override
   void dispose() {
@@ -44,7 +48,31 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final l = AppLocalizations.of(context)!;
     final workoutId = widget.workoutId;
     if (workoutId == null) {
-      return const _TrainingHistoryScreen();
+      return PageShell(
+        dark: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l.training,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineLarge?.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 14),
+            TabSelector(
+              labels: [l.today, l.history],
+              selected: _trainingTab,
+              dark: true,
+              onSelected: (index) => setState(() => _trainingTab = index),
+            ),
+            const SizedBox(height: 18),
+            _trainingTab == 0
+                ? const _TrainingTodayView()
+                : const _TrainingHistoryView(),
+          ],
+        ),
+      );
     }
 
     final session = ref.watch(workoutSessionControllerProvider(workoutId));
@@ -309,31 +337,21 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
       return;
     }
     _draftKey = state.currentDraftKey;
-    _repsController.text = '${state.currentDraft.actualReps}';
-    _weightController.text =
-        state.currentDraft.actualWeight ==
-            state.currentDraft.actualWeight.roundToDouble()
-        ? '${state.currentDraft.actualWeight.round()}'
-        : state.currentDraft.actualWeight.toStringAsFixed(1);
+    _repsController.text = state.currentDraft.repsInput;
+    _weightController.text = state.currentDraft.weightInput;
     _noteController.text = state.workoutNote;
   }
 
   void _updateReps(String workoutId, String value) {
-    final reps = int.tryParse(value);
-    if (reps != null) {
-      ref
-          .read(workoutSessionControllerProvider(workoutId).notifier)
-          .updateActualReps(reps);
-    }
+    ref
+        .read(workoutSessionControllerProvider(workoutId).notifier)
+        .updateActualRepsInput(value);
   }
 
   void _updateWeight(String workoutId, String value) {
-    final weight = double.tryParse(value);
-    if (weight != null) {
-      ref
-          .read(workoutSessionControllerProvider(workoutId).notifier)
-          .updateActualWeight(weight);
-    }
+    ref
+        .read(workoutSessionControllerProvider(workoutId).notifier)
+        .updateActualWeightInput(value);
   }
 
   Future<void> _completeSet(
@@ -343,17 +361,22 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   ) async {
     final l = AppLocalizations.of(context)!;
     final draft = state.currentDraft;
-    if (draft.actualReps < 0 ||
-        draft.actualWeight < 0 ||
-        (draft.rpe != null && (draft.rpe! < 1 || draft.rpe! > 10))) {
+    if (!draft.isValid) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(l.invalidPerformanceInput)));
       return;
     }
-    ref
-        .read(workoutSessionControllerProvider(workoutId).notifier)
-        .completeCurrentSet();
+    try {
+      ref
+          .read(workoutSessionControllerProvider(workoutId).notifier)
+          .completeCurrentSet();
+    } on StateError {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l.invalidPerformanceInput)));
+      return;
+    }
     final updated = ref
         .read(workoutSessionControllerProvider(workoutId))
         .requireValue;
@@ -407,9 +430,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                     .finishWorkout();
                 if (context.mounted) {
                   Navigator.of(context).pop();
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text(l.workoutSaved)));
+                  context.go('${AppRoutes.training}?tab=history');
                 }
               },
             ),
@@ -469,48 +490,117 @@ class _NumberField extends StatelessWidget {
   }
 }
 
-class _TrainingHistoryScreen extends ConsumerWidget {
-  const _TrainingHistoryScreen();
+class _TrainingTodayView extends ConsumerWidget {
+  const _TrainingTodayView();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l = AppLocalizations.of(context)!;
+    final workout = ref.watch(workoutControllerProvider);
+    return workout.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) =>
+          Text('$error', style: const TextStyle(color: Colors.white)),
+      data: (workout) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: darkBoxDecoration(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              workout.title,
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(color: Colors.white),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${workout.category}  -  ${workout.focus}',
+              style: const TextStyle(
+                color: Colors.white60,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 14),
+            for (final exercise in workout.exercises)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Image.asset(
+                          exerciseImagePath(exercise.exerciseId),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            exercise.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            exercisePrescriptionDetail(exercise),
+                            style: const TextStyle(
+                              color: Colors.white60,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+            PrimaryButton(
+              label: l.startWorkout,
+              icon: Icons.arrow_forward_rounded,
+              onPressed: () => context.go(AppRoutes.workoutPath(workout.id)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TrainingHistoryView extends ConsumerWidget {
+  const _TrainingHistoryView();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
     final history = ref.watch(workoutHistoryProvider);
-    return PageShell(
-      dark: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.training,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineLarge?.copyWith(color: Colors.white),
-          ),
-          const SizedBox(height: 14),
-          TabSelector(labels: [l.today, l.history], selected: 1, dark: true),
-          const SizedBox(height: 18),
-          history.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (error, stackTrace) =>
-                Text('$error', style: const TextStyle(color: Colors.white)),
-            data: (items) => items.isEmpty
-                ? Text(
-                    l.noWorkoutHistory,
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  )
-                : Column(
-                    children: [
-                      for (final result in items.reversed)
-                        _WorkoutHistoryCard(result: result),
-                    ],
-                  ),
-          ),
-        ],
-      ),
+    return history.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stackTrace) =>
+          Text('$error', style: const TextStyle(color: Colors.white)),
+      data: (items) => items.isEmpty
+          ? Text(
+              l.noWorkoutHistory,
+              style: const TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.w700,
+              ),
+            )
+          : Column(
+              children: [
+                for (final result in items.reversed)
+                  _WorkoutHistoryCard(result: result),
+              ],
+            ),
     );
   }
 }
@@ -518,7 +608,7 @@ class _TrainingHistoryScreen extends ConsumerWidget {
 class _WorkoutHistoryCard extends StatelessWidget {
   const _WorkoutHistoryCard({required this.result});
 
-  final WorkoutResult result;
+  final WorkoutHistoryEntry result;
 
   @override
   Widget build(BuildContext context) {
@@ -540,7 +630,7 @@ class _WorkoutHistoryCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    l.todaysWorkout,
+                    result.workoutTitle,
                     style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,

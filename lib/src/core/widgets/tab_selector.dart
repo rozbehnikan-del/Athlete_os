@@ -8,11 +8,13 @@ class TabSelector extends StatelessWidget {
     required this.labels,
     this.selected = 0,
     this.dark = false,
+    this.onSelected,
   });
 
   final List<String> labels;
   final int selected;
   final bool dark;
+  final ValueChanged<int>? onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -22,23 +24,26 @@ class TabSelector extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: labels.length,
         separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (_, i) => Container(
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: i == selected
-                ? (dark ? Colors.white : AppColors.brandBlack)
-                : (dark ? Colors.white10 : Colors.white),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: dark ? Colors.white12 : AppColors.line),
-          ),
-          child: Text(
-            labels[i],
-            style: TextStyle(
+        itemBuilder: (_, i) => GestureDetector(
+          onTap: onSelected == null ? null : () => onSelected!(i),
+          child: Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
               color: i == selected
-                  ? (dark ? AppColors.brandBlack : Colors.white)
-                  : (dark ? Colors.white70 : AppColors.textMuted),
-              fontWeight: FontWeight.w800,
+                  ? (dark ? Colors.white : AppColors.brandBlack)
+                  : (dark ? Colors.white10 : Colors.white),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: dark ? Colors.white12 : AppColors.line),
+            ),
+            child: Text(
+              labels[i],
+              style: TextStyle(
+                color: i == selected
+                    ? (dark ? AppColors.brandBlack : Colors.white)
+                    : (dark ? Colors.white70 : AppColors.textMuted),
+                fontWeight: FontWeight.w800,
+              ),
             ),
           ),
         ),

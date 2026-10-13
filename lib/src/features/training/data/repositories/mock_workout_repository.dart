@@ -1,14 +1,20 @@
 import '../../domain/entities/exercise_prescription.dart';
 import '../../domain/entities/exercise_set.dart';
 import '../../domain/entities/workout.dart';
+import '../../domain/entities/workout_history_entry.dart';
 import '../../domain/entities/workout_result.dart';
 import '../../domain/repositories/workout_repository.dart';
 
 class MockWorkoutRepository implements WorkoutRepository {
-  MockWorkoutRepository();
+  MockWorkoutRepository({List<Workout>? workouts}) {
+    for (final workout in workouts ?? [_todayWorkout]) {
+      _workouts[workout.id] = workout;
+    }
+  }
 
   final List<WorkoutResult> _submittedResults = [];
-  late final Workout _todayWorkout = Workout(
+  final Map<String, Workout> _workouts = {};
+  static final Workout _todayWorkout = Workout(
     id: 'today-lower-strength',
     title: "Today's Workout",
     category: 'Strength',
@@ -112,8 +118,9 @@ class MockWorkoutRepository implements WorkoutRepository {
     required String athleteId,
     required String workoutId,
   }) async {
-    if (workoutId == _todayWorkout.id) {
-      return _todayWorkout;
+    final workout = _workouts[workoutId];
+    if (workout != null) {
+      return workout;
     }
     throw StateError('Workout not found: $workoutId');
   }
@@ -124,9 +131,20 @@ class MockWorkoutRepository implements WorkoutRepository {
   }
 
   @override
-  Future<List<WorkoutResult>> getWorkoutHistory(String athleteId) async =>
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory(String athleteId) async =>
       List.unmodifiable(
-        _submittedResults.where((result) => result.athleteId == athleteId),
+        _submittedResults
+            .where((result) => result.athleteId == athleteId)
+            .map(
+              (result) => WorkoutHistoryEntry(
+                workoutId: result.workoutId,
+                workoutTitle:
+                    _workouts[result.workoutId]?.title ?? result.workoutId,
+                completedAt: result.completedAt,
+                setResults: result.setResults,
+                notes: result.notes,
+              ),
+            ),
       );
 
   List<WorkoutResult> get submittedResults =>

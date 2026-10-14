@@ -156,68 +156,77 @@ class _TodayWorkoutCard extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
             Text('$error', style: const TextStyle(color: AppColors.red)),
-        data: (workout) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
+        data: (workout) => workout == null
+            ? const Text(
+                'No active workout today',
+                style: TextStyle(
+                  color: AppColors.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              l.todaysWorkout,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            Text(
+                              '${l.strength} (${l.lowerBody})',
+                              style: const TextStyle(
+                                color: AppColors.textMuted,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text(
+                          l.viewPlan,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        l.todaysWorkout,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      Text(
-                        '${l.strength} (${l.lowerBody})',
-                        style: const TextStyle(
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          children: [
+                            for (var i = 0; i < workout.exercises.length; i++)
+                              _ExerciseLine(
+                                exercise: workout.exercises[i],
+                                complete: i == 0,
+                              ),
+                          ],
                         ),
                       ),
+                      const SizedBox(width: 8),
+                      const ProgressRing(value: .75, size: 58),
                     ],
                   ),
-                ),
-                TextButton(
-                  onPressed: () {},
-                  child: Text(
-                    l.viewPlan,
-                    style: const TextStyle(fontWeight: FontWeight.w900),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: PrimaryButton(
+                      label: l.startWorkout,
+                      icon: Icons.arrow_forward_rounded,
+                      onPressed: () =>
+                          context.go(AppRoutes.workoutPath(workout.id)),
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    children: [
-                      for (var i = 0; i < workout.exercises.length; i++)
-                        _ExerciseLine(
-                          exercise: workout.exercises[i],
-                          complete: i == 0,
-                        ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const ProgressRing(value: .75, size: 58),
-              ],
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: PrimaryButton(
-                label: l.startWorkout,
-                icon: Icons.arrow_forward_rounded,
-                onPressed: () => context.go(AppRoutes.workoutPath(workout.id)),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

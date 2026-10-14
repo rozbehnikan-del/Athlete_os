@@ -19,10 +19,15 @@ String weightUnitLabel(WeightUnit unit) => switch (unit) {
 };
 
 String targetWeightLabel(ExerciseSet set) {
-  final weight = set.targetWeight == set.targetWeight.roundToDouble()
-      ? set.targetWeight.round().toString()
-      : set.targetWeight.toStringAsFixed(1);
-  return '$weight ${weightUnitLabel(set.weightUnit)}';
+  final targetWeight = set.targetWeight;
+  final weightUnit = set.weightUnit;
+  if (targetWeight == null || weightUnit == null) {
+    return 'target not set';
+  }
+  final weight = targetWeight == targetWeight.roundToDouble()
+      ? targetWeight.round().toString()
+      : targetWeight.toStringAsFixed(1);
+  return '$weight ${weightUnitLabel(weightUnit)}';
 }
 
 String exercisePrescriptionDetail(ExercisePrescription exercise) {
@@ -30,5 +35,11 @@ String exercisePrescriptionDetail(ExercisePrescription exercise) {
     return '';
   }
   final firstSet = exercise.sets.first;
-  return '${exercise.sets.length} x ${firstSet.targetReps} @ ${targetWeightLabel(firstSet)}';
+  final targetReps = firstSet.targetReps;
+  if (targetReps == null ||
+      firstSet.targetWeight == null ||
+      firstSet.weightUnit == null) {
+    return '${exercise.sets.length} sets';
+  }
+  return '${exercise.sets.length} x $targetReps @ ${targetWeightLabel(firstSet)}';
 }

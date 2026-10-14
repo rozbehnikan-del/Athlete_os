@@ -42,7 +42,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope(id: 'today-workout')),
       );
 
-      final workout = await repository.getTodayWorkout('athlete-ali');
+      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
 
       expect(workout.id, 'today-workout');
       expect(workout.title, "Today's Workout");
@@ -61,12 +61,46 @@ void main() {
       expect(workout.exercises.first.sets.first.targetWeight, 80);
     });
 
+    test('today API with null data returns no workout', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse({'data': null}),
+      );
+
+      final workout = await repository.getTodayWorkout('athlete-ali');
+
+      expect(workout, isNull);
+    });
+
+    test('nullable category and focus do not crash mapping', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse(workoutEnvelope(category: null, focus: null)),
+      );
+
+      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+
+      expect(workout.category, '');
+      expect(workout.focus, '');
+    });
+
+    test('nullable target fields are mapped predictably', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse(workoutEnvelope(nullableFirstSet: true)),
+      );
+
+      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final set = workout.exercises.first.sets.first;
+
+      expect(set.targetReps, isNull);
+      expect(set.targetWeight, isNull);
+      expect(set.weightUnit, isNull);
+    });
+
     test('three exercises and expected set counts are parsed', () async {
       final repository = repositoryFor(
         (_) async => jsonResponse(workoutEnvelope()),
       );
 
-      final workout = await repository.getTodayWorkout('athlete-ali');
+      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
 
       expect(workout.exercises, hasLength(3));
       expect(workout.exercises[0].name, 'Back Squat');
@@ -82,7 +116,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope()),
       );
 
-      final workout = await repository.getTodayWorkout('athlete-ali');
+      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
 
       expect(workout.exercises.first.sets.first.weightUnit, WeightUnit.kg);
     });
@@ -176,6 +210,19 @@ void main() {
       expect(secondSet.rpe, isNull);
     });
 
+    test('history newest-first order remains unchanged', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse(historyEnvelope(includeOlder: true)),
+      );
+
+      final history = await repository.getWorkoutHistory('athlete-ali');
+
+      expect(history.map((entry) => entry.workoutId), [
+        'workout-123',
+        'workout-older',
+      ]);
+    });
+
     test('malformed history JSON throws RepositoryException', () async {
       final repository = repositoryFor(
         (_) async => jsonResponse({'data': 'not-a-list'}),
@@ -251,7 +298,7 @@ void main() {
         addTearDown(container.dispose);
 
         final repository = container.read(workoutRepositoryProvider);
-        final workout = await repository.getTodayWorkout('athlete-ali');
+        final workout = (await repository.getTodayWorkout('athlete-ali'))!;
 
         expect(identical(repository, mockRepository), isTrue);
         expect(workout.title, "Today's Workout");
@@ -260,7 +307,7 @@ void main() {
   });
 }
 
-Map<String, dynamic> historyEnvelope() {
+Map<String, dynamic> historyEnvelope({bool includeOlder = false}) {
   return {
     'data': [
       {
@@ -300,18 +347,49 @@ Map<String, dynamic> historyEnvelope() {
           },
         ],
       },
+      if (includeOlder)
+        {
+          'id': 'result-older',
+          'workout_id': 'workout-older',
+          'workout_title': 'Older Workout',
+          'category': 'Strength',
+          'focus': 'Upper Body',
+          'completed_at': '2026-10-13T12:45:30Z',
+          'completed_sets': 1,
+          'total_sets': 1,
+          'notes': null,
+          'sets': [
+            {
+              'prescription_id': 'older-prescription',
+              'exercise_id': 'older-exercise',
+              'set_id': 'older-set',
+              'set_number': 1,
+              'actual_reps': 8,
+              'actual_weight': 80,
+              'weight_unit': 'kg',
+              'rpe': null,
+              'completed': true,
+              'notes': null,
+            },
+          ],
+        },
     ],
-    'meta': {'page': 1, 'per_page': 20, 'total': 1},
+    'meta': {'page': 1, 'per_page': 20, 'total': includeOlder ? 2 : 1},
   };
 }
 
-Map<String, dynamic> workoutEnvelope({String id = 'today-workout'}) {
+Map<String, dynamic> workoutEnvelope({
+  String id = 'today-workout',
+  String? category = 'Strength',
+  String? focus = 'Lower Body',
+  bool nullableFirstSet = false,
+}) {
   return {
     'data': {
       'id': id,
       'title': "Today's Workout",
-      'category': 'Strength',
-      'focus': 'Lower Body',
+      'category': category,
+      'focus': focus,
       'scheduled_for': '2026-10-14',
       'status': 'active',
       'coach': {'id': 'coach-id', 'name': 'Demo Coach'},
@@ -325,6 +403,7 @@ Map<String, dynamic> workoutEnvelope({String id = 'today-workout'}) {
           setCount: 4,
           reps: 8,
           weight: 80,
+          nullableFirstSet: nullableFirstSet,
         ),
         exerciseJson(
           prescriptionId: 'romanian-deadlift-prescription',
@@ -360,6 +439,7 @@ Map<String, dynamic> exerciseJson({
   required int setCount,
   required int reps,
   required double weight,
+  bool nullableFirstSet = false,
 }) {
   return {
     'prescription_id': prescriptionId,
@@ -371,9 +451,9 @@ Map<String, dynamic> exerciseJson({
         {
           'id': '$prescriptionId-set-$index',
           'set_number': index,
-          'target_reps': reps,
-          'target_weight': weight,
-          'weight_unit': 'kg',
+          'target_reps': nullableFirstSet && index == 1 ? null : reps,
+          'target_weight': nullableFirstSet && index == 1 ? null : weight,
+          'weight_unit': nullableFirstSet && index == 1 ? null : 'kg',
         },
     ],
   };

@@ -501,77 +501,90 @@ class _TrainingTodayView extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) =>
           Text('$error', style: const TextStyle(color: Colors.white)),
-      data: (workout) => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: darkBoxDecoration(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              workout.title,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '${workout.category}  -  ${workout.focus}',
-              style: const TextStyle(
-                color: Colors.white60,
-                fontWeight: FontWeight.w700,
+      data: (workout) => workout == null
+          ? Container(
+              padding: const EdgeInsets.all(16),
+              decoration: darkBoxDecoration(),
+              child: const Text(
+                'No active workout today',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-            ),
-            const SizedBox(height: 14),
-            for (final exercise in workout.exercises)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  children: [
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: SizedBox(
-                        width: 48,
-                        height: 48,
-                        child: Image.asset(
-                          exerciseImagePath(exercise.exerciseId),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
+            )
+          : Container(
+              padding: const EdgeInsets.all(16),
+              decoration: darkBoxDecoration(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    workout.title,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineSmall?.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${workout.category}  -  ${workout.focus}',
+                    style: const TextStyle(
+                      color: Colors.white60,
+                      fontWeight: FontWeight.w700,
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                  ),
+                  const SizedBox(height: 14),
+                  for (final exercise in workout.exercises)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
                         children: [
-                          Text(
-                            exercise.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: SizedBox(
+                              width: 48,
+                              height: 48,
+                              child: Image.asset(
+                                exerciseImagePath(exercise.exerciseId),
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                          Text(
-                            exercisePrescriptionDetail(exercise),
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontWeight: FontWeight.w700,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  exercise.name,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                Text(
+                                  exercisePrescriptionDetail(exercise),
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  const SizedBox(height: 8),
+                  PrimaryButton(
+                    label: l.startWorkout,
+                    icon: Icons.arrow_forward_rounded,
+                    onPressed: () =>
+                        context.go(AppRoutes.workoutPath(workout.id)),
+                  ),
+                ],
               ),
-            const SizedBox(height: 8),
-            PrimaryButton(
-              label: l.startWorkout,
-              icon: Icons.arrow_forward_rounded,
-              onPressed: () => context.go(AppRoutes.workoutPath(workout.id)),
             ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -597,8 +610,7 @@ class _TrainingHistoryView extends ConsumerWidget {
             )
           : Column(
               children: [
-                for (final result in items.reversed)
-                  _WorkoutHistoryCard(result: result),
+                for (final result in items) _WorkoutHistoryCard(result: result),
               ],
             ),
     );

@@ -1,6 +1,7 @@
 import 'package:athlete_os/src/core/auth/user_role.dart';
 import 'package:athlete_os/src/core/errors/app_exception.dart';
 import 'package:athlete_os/src/features/training/data/repositories/mock_workout_repository.dart';
+import 'package:athlete_os/src/features/training/application/controllers/workout_controller.dart';
 import 'package:athlete_os/src/features/training/application/controllers/workout_session_controller.dart';
 import 'package:athlete_os/src/features/training/application/workout_providers.dart';
 import 'package:athlete_os/src/features/training/domain/entities/exercise_prescription.dart';
@@ -124,7 +125,7 @@ void main() {
   test('MockWorkoutRepository returns structured workout data', () async {
     final repository = MockWorkoutRepository();
 
-    final workout = await repository.getTodayWorkout('athlete-ali');
+    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
     final firstSet = workout.exercises.first.sets.first;
 
     expect(workout.id, 'today-lower-strength');
@@ -142,7 +143,7 @@ void main() {
   test('MockWorkoutRepository exposes stable ExerciseSet IDs', () async {
     final repository = MockWorkoutRepository();
 
-    final workout = await repository.getTodayWorkout('athlete-ali');
+    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
     final ids = [
       for (final exercise in workout.exercises)
         for (final set in exercise.sets) set.id,
@@ -175,7 +176,7 @@ void main() {
 
   test('WorkoutSession initializes actual values from target', () async {
     final repository = MockWorkoutRepository();
-    final workout = await repository.getTodayWorkout('athlete-ali');
+    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
     final firstSet = workout.exercises.first.sets.first;
     final state = WorkoutSessionState(
       workout: workout,
@@ -192,7 +193,7 @@ void main() {
           setNumber: firstSet.setNumber,
           repsInput: firstSet.targetReps.toString(),
           weightInput: firstSet.targetWeight.toString(),
-          weightUnit: firstSet.weightUnit,
+          weightUnit: firstSet.weightUnit!,
         ),
       },
     );
@@ -311,7 +312,7 @@ void main() {
 
   test('Completing full session builds correct WorkoutResult', () async {
     final repository = MockWorkoutRepository();
-    final workout = await repository.getTodayWorkout('athlete-ali');
+    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
     final drafts = {
       for (final exercise in workout.exercises)
         for (final set in exercise.sets)
@@ -322,7 +323,7 @@ void main() {
             setNumber: set.setNumber,
             repsInput: set.targetReps.toString(),
             weightInput: set.targetWeight.toString(),
-            weightUnit: set.weightUnit,
+            weightUnit: set.weightUnit!,
             completed: true,
           ),
     };
@@ -461,6 +462,59 @@ void main() {
     expect(state.completedSets, 1);
   });
 
+  test('today state represents no workout', () async {
+    final repository = NoTodayWorkoutRepository();
+    final container = ProviderContainer(
+      overrides: [workoutRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    final workout = await container.read(workoutControllerProvider.future);
+
+    expect(workout, isNull);
+  });
+
+  test('successful finish invalidates and refetches today workout', () async {
+    final repository = TodayRefreshWorkoutRepository();
+    final container = ProviderContainer(
+      overrides: [workoutRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    expect(await container.read(workoutControllerProvider.future), isNotNull);
+    final provider = workoutSessionControllerProvider('today-lower-strength');
+    await container.read(provider.future);
+    final notifier = container.read(provider.notifier);
+    notifier.completeCurrentSet();
+
+    await notifier.finishWorkout();
+
+    expect(await container.read(workoutControllerProvider.future), isNull);
+    expect(repository.todayCalls, 2);
+  });
+
+  test('failed finish does not invalidate today workout', () async {
+    final repository = FailingSubmitWorkoutRepository();
+    final container = ProviderContainer(
+      overrides: [workoutRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    expect(await container.read(workoutControllerProvider.future), isNotNull);
+    final provider = workoutSessionControllerProvider('today-lower-strength');
+    await container.read(provider.future);
+    final notifier = container.read(provider.notifier);
+    notifier.completeCurrentSet();
+
+    await expectLater(
+      notifier.finishWorkout(),
+      throwsA(isA<RepositoryException>()),
+    );
+
+    expect(container.read(workoutControllerProvider).requireValue, isNotNull);
+    expect(repository.todayCalls, 1);
+  });
+
   test('History metadata returns distinct workout title', () async {
     final workout = Workout(
       id: 'distinct-workout',
@@ -557,7 +611,7 @@ void main() {
             setNumber: set.setNumber,
             repsInput: set.targetReps.toString(),
             weightInput: set.targetWeight.toString(),
-            weightUnit: set.weightUnit,
+            weightUnit: set.weightUnit!,
           ),
     };
 
@@ -568,8 +622,34 @@ void main() {
 }
 
 class FailingSubmitWorkoutRepository extends MockWorkoutRepository {
+  int todayCalls = 0;
+
+  @override
+  Future<Workout?> getTodayWorkout(String athleteId) async {
+    todayCalls += 1;
+    return super.getTodayWorkout(athleteId);
+  }
+
   @override
   Future<void> submitWorkoutResult(WorkoutResult result) async {
     throw const RepositoryException('Submission failed.');
+  }
+}
+
+class NoTodayWorkoutRepository extends MockWorkoutRepository {
+  @override
+  Future<Workout?> getTodayWorkout(String athleteId) async => null;
+}
+
+class TodayRefreshWorkoutRepository extends MockWorkoutRepository {
+  int todayCalls = 0;
+
+  @override
+  Future<Workout?> getTodayWorkout(String athleteId) async {
+    todayCalls += 1;
+    if (todayCalls == 1) {
+      return super.getTodayWorkout(athleteId);
+    }
+    return null;
   }
 }

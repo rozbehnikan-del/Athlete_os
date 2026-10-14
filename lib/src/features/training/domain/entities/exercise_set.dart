@@ -11,7 +11,7 @@ class ExerciseSet {
 
   final String id;
   final int setNumber;
-  final int targetReps;
-  final double targetWeight;
-  final WeightUnit weightUnit;
+  final int? targetReps;
+  final double? targetWeight;
+  final WeightUnit? weightUnit;
 }

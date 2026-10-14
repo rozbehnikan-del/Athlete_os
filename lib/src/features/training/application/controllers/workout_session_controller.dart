@@ -191,11 +191,9 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
           prescriptionId: exercise.id,
           exerciseId: exercise.exerciseId,
           setNumber: set.setNumber,
-          repsInput: set.targetReps.toString(),
-          weightInput: set.targetWeight == set.targetWeight.roundToDouble()
-              ? set.targetWeight.round().toString()
-              : set.targetWeight.toStringAsFixed(1),
-          weightUnit: set.weightUnit,
+          repsInput: set.targetReps?.toString() ?? '',
+          weightInput: _targetWeightInput(set),
+          weightUnit: set.weightUnit ?? WeightUnit.kg,
         );
       }
     }
@@ -205,6 +203,16 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
       currentSetIndex: 0,
       drafts: drafts,
     );
+  }
+
+  String _targetWeightInput(ExerciseSet set) {
+    final targetWeight = set.targetWeight;
+    if (targetWeight == null) {
+      return '';
+    }
+    return targetWeight == targetWeight.roundToDouble()
+        ? targetWeight.round().toString()
+        : targetWeight.toStringAsFixed(1);
   }
 
   void updateActualReps(int reps) {
@@ -311,6 +319,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
     try {
       await ref.read(workoutRepositoryProvider).submitWorkoutResult(result);
       ref.invalidate(workoutHistoryProvider);
+      ref.invalidate(workoutControllerProvider);
       state = AsyncData(current.copyWith(submitting: false, finished: true));
     } catch (_) {
       final failedState = state.requireValue;

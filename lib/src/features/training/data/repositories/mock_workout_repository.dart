@@ -121,7 +121,7 @@ class MockWorkoutRepository implements WorkoutRepository {
   );
 
   @override
-  Future<Workout> getTodayWorkout(String athleteId) async => _todayWorkout;
+  Future<Workout?> getTodayWorkout(String athleteId) async => _todayWorkout;
 
   @override
   Future<Workout> getWorkoutById({

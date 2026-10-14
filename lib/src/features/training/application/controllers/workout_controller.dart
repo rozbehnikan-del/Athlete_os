@@ -6,7 +6,7 @@ import '../../domain/entities/workout_result.dart';
 import '../workout_providers.dart';
 
 final workoutControllerProvider =
-    AsyncNotifierProvider<WorkoutController, Workout>(WorkoutController.new);
+    AsyncNotifierProvider<WorkoutController, Workout?>(WorkoutController.new);
 
 final workoutHistoryProvider = FutureProvider<List<WorkoutHistoryEntry>>(
   (ref) => ref
@@ -14,11 +14,11 @@ final workoutHistoryProvider = FutureProvider<List<WorkoutHistoryEntry>>(
       .getWorkoutHistory(WorkoutController.athleteId),
 );
 
-class WorkoutController extends AsyncNotifier<Workout> {
+class WorkoutController extends AsyncNotifier<Workout?> {
   static const athleteId = 'athlete-ali';
 
   @override
-  Future<Workout> build() {
+  Future<Workout?> build() {
     return ref.watch(workoutRepositoryProvider).getTodayWorkout(athleteId);
   }
 

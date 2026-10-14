@@ -13,10 +13,10 @@ class ApiWorkoutRepository implements WorkoutRepository {
   final ApiClient _apiClient;
 
   @override
-  Future<Workout> getTodayWorkout(String athleteId) async {
+  Future<Workout?> getTodayWorkout(String athleteId) async {
     // TODO: Remove athleteId after JWT auth makes /athletes/me authoritative.
     final json = await _apiClient.get('/v1/athletes/me/workouts/today');
-    return _workoutFromEnvelope(json);
+    return _nullableWorkoutFromEnvelope(json);
   }
 
   @override
@@ -79,10 +79,17 @@ class ApiWorkoutRepository implements WorkoutRepository {
     return Workout(
       id: _readString(data, 'id'),
       title: _readString(data, 'title'),
-      category: _readString(data, 'category'),
-      focus: _readString(data, 'focus'),
+      category: _readOptionalString(data, 'category') ?? '',
+      focus: _readOptionalString(data, 'focus') ?? '',
       exercises: exercises.map(_exerciseFromJson),
     );
+  }
+
+  Workout? _nullableWorkoutFromEnvelope(Map<String, dynamic> json) {
+    if (json['data'] == null) {
+      return null;
+    }
+    return _workoutFromEnvelope(json);
   }
 
   ExercisePrescription _exerciseFromJson(Object? value) {
@@ -117,9 +124,9 @@ class ApiWorkoutRepository implements WorkoutRepository {
     return ExerciseSet(
       id: _readString(value, 'id'),
       setNumber: _readInt(value, 'set_number'),
-      targetReps: _readInt(value, 'target_reps'),
-      targetWeight: _readDouble(value, 'target_weight'),
-      weightUnit: _weightUnitFromJson(_readString(value, 'weight_unit')),
+      targetReps: _readOptionalInt(value, 'target_reps'),
+      targetWeight: _readOptionalDouble(value, 'target_weight'),
+      weightUnit: _readOptionalWeightUnit(value, 'weight_unit'),
     );
   }
 
@@ -184,6 +191,17 @@ class ApiWorkoutRepository implements WorkoutRepository {
     };
   }
 
+  WeightUnit? _readOptionalWeightUnit(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) {
+      return null;
+    }
+    if (value is String) {
+      return _weightUnitFromJson(value);
+    }
+    throw const RepositoryException('Server returned malformed workout data.');
+  }
+
   String _weightUnitToJson(WeightUnit value) {
     return switch (value) {
       WeightUnit.kg => 'kg',
@@ -212,6 +230,17 @@ class ApiWorkoutRepository implements WorkoutRepository {
 
   int _readInt(Map<String, dynamic> json, String key) {
     final value = json[key];
+    if (value is int) {
+      return value;
+    }
+    throw const RepositoryException('Server returned malformed workout data.');
+  }
+
+  int? _readOptionalInt(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) {
+      return null;
+    }
     if (value is int) {
       return value;
     }

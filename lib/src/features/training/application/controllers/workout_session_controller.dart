@@ -15,7 +15,10 @@ final workoutSessionControllerProvider =
     >(WorkoutSessionController.new);
 
 class SetResultDraft {
+  static const _unset = Object();
+
   const SetResultDraft({
+    required this.setId,
     required this.prescriptionId,
     required this.exerciseId,
     required this.setNumber,
@@ -27,6 +30,7 @@ class SetResultDraft {
     this.notes,
   });
 
+  final String setId;
   final String prescriptionId;
   final String exerciseId;
   final int setNumber;
@@ -48,10 +52,17 @@ class SetResultDraft {
     String? repsInput,
     String? weightInput,
     bool? completed,
-    double? rpe,
+    Object? rpe = _unset,
     String? notes,
   }) {
+    final nextRpe = identical(rpe, _unset)
+        ? this.rpe
+        : rpe == null
+        ? null
+        : (rpe as num).toDouble();
+
     return SetResultDraft(
+      setId: setId,
       prescriptionId: prescriptionId,
       exerciseId: exerciseId,
       setNumber: setNumber,
@@ -59,12 +70,13 @@ class SetResultDraft {
       weightInput: weightInput ?? this.weightInput,
       weightUnit: weightUnit,
       completed: completed ?? this.completed,
-      rpe: rpe ?? this.rpe,
+      rpe: nextRpe,
       notes: notes ?? this.notes,
     );
   }
 
   SetResult toResult() => SetResult(
+    setId: setId,
     prescriptionId: prescriptionId,
     exerciseId: exerciseId,
     setNumber: setNumber,
@@ -175,6 +187,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
     for (final exercise in workout.exercises) {
       for (final set in exercise.sets) {
         drafts[draftKey(exercise.id, set.setNumber)] = SetResultDraft(
+          setId: set.id,
           prescriptionId: exercise.id,
           exerciseId: exercise.exerciseId,
           setNumber: set.setNumber,
@@ -295,9 +308,17 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
       completedAt: DateTime.now(),
     );
     state = AsyncData(current.copyWith(submitting: true));
-    await ref.read(workoutRepositoryProvider).submitWorkoutResult(result);
-    ref.invalidate(workoutHistoryProvider);
-    state = AsyncData(current.copyWith(submitting: false, finished: true));
+    try {
+      await ref.read(workoutRepositoryProvider).submitWorkoutResult(result);
+      ref.invalidate(workoutHistoryProvider);
+      state = AsyncData(current.copyWith(submitting: false, finished: true));
+    } catch (_) {
+      final failedState = state.requireValue;
+      state = AsyncData(
+        failedState.copyWith(submitting: false, finished: false),
+      );
+      rethrow;
+    }
   }
 
   void _updateCurrentDraft(

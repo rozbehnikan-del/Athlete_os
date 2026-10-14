@@ -7,6 +7,7 @@ import 'package:athlete_os/src/features/training/application/workout_providers.d
 import 'package:athlete_os/src/features/training/data/repositories/api_workout_repository.dart';
 import 'package:athlete_os/src/features/training/data/repositories/mock_workout_repository.dart';
 import 'package:athlete_os/src/features/training/domain/entities/exercise_set.dart';
+import 'package:athlete_os/src/features/training/domain/entities/workout_result.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -24,7 +25,10 @@ void main() {
     );
   }
 
-  http.Response jsonResponse(Map<String, dynamic> body, {int statusCode = 200}) {
+  http.Response jsonResponse(
+    Map<String, dynamic> body, {
+    int statusCode = 200,
+  }) {
     return http.Response(
       jsonEncode(body),
       statusCode,
@@ -49,6 +53,10 @@ void main() {
       expect(workout.exercises.first.name, 'Back Squat');
       expect(workout.exercises.first.coachingNote, 'Stay braced.');
       expect(workout.exercises.first.sets.first.setNumber, 1);
+      expect(
+        workout.exercises.first.sets.first.id,
+        'back-squat-prescription-set-1',
+      );
       expect(workout.exercises.first.sets.first.targetReps, 8);
       expect(workout.exercises.first.sets.first.targetWeight, 80);
     });
@@ -79,6 +87,106 @@ void main() {
       expect(workout.exercises.first.sets.first.weightUnit, WeightUnit.kg);
     });
 
+    test('submitWorkoutResult posts correct JSON payload', () async {
+      late Uri requestedUri;
+      late Map<String, dynamic> requestedBody;
+      final repository = repositoryFor((request) async {
+        requestedUri = request.url;
+        requestedBody = jsonDecode(request.body) as Map<String, dynamic>;
+        return jsonResponse({
+          'data': {
+            'id': 'result-1',
+            'workout_id': 'workout-123',
+            'status': 'completed',
+            'completed_at': '2026-10-14T12:45:30Z',
+            'completed_sets': 2,
+            'notes': 'Done.',
+          },
+        }, statusCode: 201);
+      });
+
+      await repository.submitWorkoutResult(
+        WorkoutResult(
+          workoutId: 'workout-123',
+          athleteId: 'athlete-ali',
+          completedAt: DateTime.parse('2026-10-14T12:45:30+03:30'),
+          notes: 'Done.',
+          setResults: const [
+            SetResult(
+              setId: 'set-kg',
+              prescriptionId: 'prescription-kg',
+              exerciseId: 'exercise-kg',
+              setNumber: 1,
+              actualReps: 8,
+              actualWeight: 82.5,
+              weightUnit: WeightUnit.kg,
+              completed: true,
+              rpe: 8,
+            ),
+            SetResult(
+              setId: 'set-lb',
+              prescriptionId: 'prescription-lb',
+              exerciseId: 'exercise-lb',
+              setNumber: 2,
+              actualReps: 7,
+              actualWeight: 180,
+              weightUnit: WeightUnit.lb,
+              completed: true,
+            ),
+          ],
+        ),
+      );
+
+      final sets = requestedBody['sets'] as List<dynamic>;
+      final firstSet = sets.first as Map<String, dynamic>;
+      final secondSet = sets.last as Map<String, dynamic>;
+
+      expect(requestedUri.path, '/v1/workouts/workout-123/results');
+      expect(firstSet['set_id'], 'set-kg');
+      expect(firstSet['weight_unit'], 'kg');
+      expect(secondSet['weight_unit'], 'lb');
+      expect(requestedBody.containsKey('athlete_id'), isFalse);
+      expect(firstSet.containsKey('prescription_id'), isFalse);
+      expect(firstSet.containsKey('exercise_id'), isFalse);
+      expect(firstSet.containsKey('set_number'), isFalse);
+    });
+
+    test('history endpoint and mapping are correct', () async {
+      late Uri requestedUri;
+      final repository = repositoryFor((request) async {
+        requestedUri = request.url;
+        return jsonResponse(historyEnvelope());
+      });
+
+      final history = await repository.getWorkoutHistory('athlete-ali');
+      final entry = history.single;
+      final firstSet = entry.setResults.first;
+      final secondSet = entry.setResults.last;
+
+      expect(requestedUri.path, '/v1/athletes/me/workout-history');
+      expect(requestedUri.query, 'page=1&per_page=20');
+      expect(entry.workoutId, 'workout-123');
+      expect(entry.workoutTitle, "Today's Workout");
+      expect(entry.completedAt, DateTime.parse('2026-10-14T12:45:30Z'));
+      expect(entry.notes, 'Felt strong today.');
+      expect(firstSet.setId, 'set-1');
+      expect(firstSet.prescriptionId, 'prescription-1');
+      expect(firstSet.exerciseId, 'exercise-1');
+      expect(firstSet.rpe, 8);
+      expect(secondSet.rpe, isNull);
+    });
+
+    test('malformed history JSON throws RepositoryException', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse({'data': 'not-a-list'}),
+      );
+
+      expect(
+        repository.getWorkoutHistory('athlete-ali'),
+        throwsA(isA<RepositoryException>()),
+      );
+    });
+
     test('getWorkoutById uses correct path', () async {
       late Uri requestedUri;
       final repository = repositoryFor((request) async {
@@ -97,15 +205,12 @@ void main() {
 
     test('404 maps to app exception', () async {
       final repository = repositoryFor(
-        (_) async => jsonResponse(
-          {
-            'error': {
-              'code': 'WORKOUT_NOT_FOUND',
-              'message': 'Workout not found.',
-            },
+        (_) async => jsonResponse({
+          'error': {
+            'code': 'WORKOUT_NOT_FOUND',
+            'message': 'Workout not found.',
           },
-          statusCode: 404,
-        ),
+        }, statusCode: 404),
       );
 
       expect(
@@ -134,20 +239,70 @@ void main() {
       );
     });
 
-    test('provider can still be overridden with MockWorkoutRepository', () async {
-      final mockRepository = MockWorkoutRepository();
-      final container = ProviderContainer(
-        overrides: [workoutRepositoryProvider.overrideWithValue(mockRepository)],
-      );
-      addTearDown(container.dispose);
+    test(
+      'provider can still be overridden with MockWorkoutRepository',
+      () async {
+        final mockRepository = MockWorkoutRepository();
+        final container = ProviderContainer(
+          overrides: [
+            workoutRepositoryProvider.overrideWithValue(mockRepository),
+          ],
+        );
+        addTearDown(container.dispose);
 
-      final repository = container.read(workoutRepositoryProvider);
-      final workout = await repository.getTodayWorkout('athlete-ali');
+        final repository = container.read(workoutRepositoryProvider);
+        final workout = await repository.getTodayWorkout('athlete-ali');
 
-      expect(identical(repository, mockRepository), isTrue);
-      expect(workout.title, "Today's Workout");
-    });
+        expect(identical(repository, mockRepository), isTrue);
+        expect(workout.title, "Today's Workout");
+      },
+    );
   });
+}
+
+Map<String, dynamic> historyEnvelope() {
+  return {
+    'data': [
+      {
+        'id': 'result-1',
+        'workout_id': 'workout-123',
+        'workout_title': "Today's Workout",
+        'category': 'Strength',
+        'focus': 'Lower Body',
+        'completed_at': '2026-10-14T12:45:30Z',
+        'completed_sets': 1,
+        'total_sets': 2,
+        'notes': 'Felt strong today.',
+        'sets': [
+          {
+            'prescription_id': 'prescription-1',
+            'exercise_id': 'exercise-1',
+            'set_id': 'set-1',
+            'set_number': 1,
+            'actual_reps': 8,
+            'actual_weight': 82.5,
+            'weight_unit': 'kg',
+            'rpe': 8.0,
+            'completed': true,
+            'notes': null,
+          },
+          {
+            'prescription_id': 'prescription-2',
+            'exercise_id': 'exercise-2',
+            'set_id': 'set-2',
+            'set_number': 2,
+            'actual_reps': 7,
+            'actual_weight': 80,
+            'weight_unit': 'kg',
+            'rpe': null,
+            'completed': false,
+            'notes': 'Skipped.',
+          },
+        ],
+      },
+    ],
+    'meta': {'page': 1, 'per_page': 20, 'total': 1},
+  };
 }
 
 Map<String, dynamic> workoutEnvelope({String id = 'today-workout'}) {

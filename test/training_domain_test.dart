@@ -18,6 +18,7 @@ void main() {
     category: 'Strength',
     sets: const [
       ExerciseSet(
+        id: 'back-squat-set-1',
         setNumber: 1,
         targetReps: 8,
         targetWeight: 80,
@@ -70,6 +71,7 @@ void main() {
 
   test('ExerciseSet stores structured numeric target values', () {
     const set = ExerciseSet(
+      id: 'back-squat-set-1',
       setNumber: 1,
       targetReps: 8,
       targetWeight: 80,
@@ -82,6 +84,7 @@ void main() {
 
   test('ExerciseSet contains no athlete completion state', () {
     const dynamic set = ExerciseSet(
+      id: 'back-squat-set-1',
       setNumber: 1,
       targetReps: 8,
       targetWeight: 80,
@@ -99,6 +102,7 @@ void main() {
       completedAt: DateTime.utc(2026, 10, 13),
       setResults: const [
         SetResult(
+          setId: 'back-squat-set-1',
           prescriptionId: 'back-squat-prescription',
           exerciseId: 'back-squat',
           setNumber: 1,
@@ -124,6 +128,7 @@ void main() {
     final firstSet = workout.exercises.first.sets.first;
 
     expect(workout.id, 'today-lower-strength');
+    expect(workout.exercises.first.sets.first.id, 'back-squat-set-1');
     expect(workout.exercises.first.exerciseId, 'back-squat');
     expect(firstSet.targetReps, 8);
     expect(firstSet.targetWeight, 80);
@@ -132,6 +137,29 @@ void main() {
       workout.exercises.every((exercise) => exercise.sets.isNotEmpty),
       isTrue,
     );
+  });
+
+  test('MockWorkoutRepository exposes stable ExerciseSet IDs', () async {
+    final repository = MockWorkoutRepository();
+
+    final workout = await repository.getTodayWorkout('athlete-ali');
+    final ids = [
+      for (final exercise in workout.exercises)
+        for (final set in exercise.sets) set.id,
+    ];
+
+    expect(ids, [
+      'back-squat-set-1',
+      'back-squat-set-2',
+      'back-squat-set-3',
+      'back-squat-set-4',
+      'romanian-deadlift-set-1',
+      'romanian-deadlift-set-2',
+      'romanian-deadlift-set-3',
+      'walking-lunges-set-1',
+      'walking-lunges-set-2',
+      'walking-lunges-set-3',
+    ]);
   });
 
   test('MockWorkoutRepository returns workout by id', () async {
@@ -158,6 +186,7 @@ void main() {
           workout.exercises.first.id,
           firstSet.setNumber,
         ): SetResultDraft(
+          setId: firstSet.id,
           prescriptionId: workout.exercises.first.id,
           exerciseId: workout.exercises.first.exerciseId,
           setNumber: firstSet.setNumber,
@@ -174,6 +203,7 @@ void main() {
 
   test('Athlete can change actual reps and weight in draft', () {
     const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
       prescriptionId: 'back-squat-prescription',
       exerciseId: 'back-squat',
       setNumber: 1,
@@ -188,8 +218,9 @@ void main() {
     expect(changed.actualWeight, 82.5);
   });
 
-  test('RPE validation rejects invalid values on draft', () {
+  test('SetResultDraft preserves setId', () {
     const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
       prescriptionId: 'back-squat-prescription',
       exerciseId: 'back-squat',
       setNumber: 1,
@@ -198,13 +229,67 @@ void main() {
       weightUnit: WeightUnit.kg,
     );
 
+    final changed = draft.copyWith(repsInput: '7');
+
+    expect(changed.setId, 'back-squat-set-1');
+    expect(changed.toResult().setId, 'back-squat-set-1');
+  });
+
+  test('RPE validation rejects invalid values on draft', () {
+    const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
+      prescriptionId: 'back-squat-prescription',
+      exerciseId: 'back-squat',
+      setNumber: 1,
+      repsInput: '8',
+      weightInput: '80',
+      weightUnit: WeightUnit.kg,
+    );
+
+    expect(draft.copyWith(rpe: 8).rpe, 8.0);
+    expect(draft.copyWith(rpe: 8.5).rpe, 8.5);
     expect(draft.copyWith(rpe: 0).isValid, isFalse);
     expect(draft.copyWith(rpe: 11).isValid, isFalse);
     expect(draft.copyWith(rpe: 7.5).isValid, isTrue);
   });
 
+  test('RPE can be cleared to null', () {
+    const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
+      prescriptionId: 'back-squat-prescription',
+      exerciseId: 'back-squat',
+      setNumber: 1,
+      repsInput: '8',
+      weightInput: '80',
+      weightUnit: WeightUnit.kg,
+      rpe: 8,
+    );
+
+    final cleared = draft.copyWith(rpe: null);
+
+    expect(cleared.rpe, isNull);
+  });
+
+  test('omitted RPE preserves previous value', () {
+    const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
+      prescriptionId: 'back-squat-prescription',
+      exerciseId: 'back-squat',
+      setNumber: 1,
+      repsInput: '8',
+      weightInput: '80',
+      weightUnit: WeightUnit.kg,
+      rpe: 8.5,
+    );
+
+    final preserved = draft.copyWith(repsInput: '7');
+
+    expect(preserved.rpe, 8.5);
+  });
+
   test('Completing a set creates correct result data', () {
     const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
       prescriptionId: 'back-squat-prescription',
       exerciseId: 'back-squat',
       setNumber: 1,
@@ -218,6 +303,7 @@ void main() {
     final result = draft.toResult();
 
     expect(result.exerciseId, 'back-squat');
+    expect(result.setId, 'back-squat-set-1');
     expect(result.actualReps, 7);
     expect(result.actualWeight, 82.5);
     expect(result.completed, isTrue);
@@ -230,6 +316,7 @@ void main() {
       for (final exercise in workout.exercises)
         for (final set in exercise.sets)
           draftKey(exercise.id, set.setNumber): SetResultDraft(
+            setId: set.id,
             prescriptionId: exercise.id,
             exerciseId: exercise.exerciseId,
             setNumber: set.setNumber,
@@ -264,6 +351,7 @@ void main() {
       completedAt: DateTime.utc(2026, 10, 13),
       setResults: const [
         SetResult(
+          setId: 'back-squat-set-1',
           prescriptionId: 'back-squat-prescription',
           exerciseId: 'back-squat',
           setNumber: 1,
@@ -350,6 +438,29 @@ void main() {
     expect(state.currentSetIndex, 1);
   });
 
+  test('failed submit leaves session unfinished and not submitting', () async {
+    final repository = FailingSubmitWorkoutRepository();
+    final container = ProviderContainer(
+      overrides: [workoutRepositoryProvider.overrideWithValue(repository)],
+    );
+    addTearDown(container.dispose);
+
+    final provider = workoutSessionControllerProvider('today-lower-strength');
+    await container.read(provider.future);
+    final notifier = container.read(provider.notifier);
+    notifier.completeCurrentSet();
+
+    await expectLater(
+      notifier.finishWorkout(),
+      throwsA(isA<RepositoryException>()),
+    );
+
+    final state = container.read(provider).requireValue;
+    expect(state.finished, isFalse);
+    expect(state.submitting, isFalse);
+    expect(state.completedSets, 1);
+  });
+
   test('History metadata returns distinct workout title', () async {
     final workout = Workout(
       id: 'distinct-workout',
@@ -363,6 +474,7 @@ void main() {
           name: 'Romanian Deadlift',
           sets: const [
             ExerciseSet(
+              id: 'romanian-deadlift-set-1',
               setNumber: 1,
               targetReps: 10,
               targetWeight: 70,
@@ -380,6 +492,7 @@ void main() {
         completedAt: DateTime.utc(2026, 10, 13),
         setResults: const [
           SetResult(
+            setId: 'romanian-deadlift-set-1',
             prescriptionId: 'deadlift-prescription',
             exerciseId: 'romanian-deadlift',
             setNumber: 1,
@@ -410,6 +523,7 @@ void main() {
           name: 'Back Squat Warmup',
           sets: const [
             ExerciseSet(
+              id: 'back-squat-warmup-set-1',
               setNumber: 1,
               targetReps: 5,
               targetWeight: 40,
@@ -423,6 +537,7 @@ void main() {
           name: 'Back Squat Strength',
           sets: const [
             ExerciseSet(
+              id: 'back-squat-strength-set-1',
               setNumber: 1,
               targetReps: 3,
               targetWeight: 100,
@@ -436,6 +551,7 @@ void main() {
       for (final exercise in workout.exercises)
         for (final set in exercise.sets)
           draftKey(exercise.id, set.setNumber): SetResultDraft(
+            setId: set.id,
             prescriptionId: exercise.id,
             exerciseId: exercise.exerciseId,
             setNumber: set.setNumber,
@@ -449,4 +565,11 @@ void main() {
     expect(drafts.keys, contains('back-squat-strength:1'));
     expect(drafts.length, 2);
   });
+}
+
+class FailingSubmitWorkoutRepository extends MockWorkoutRepository {
+  @override
+  Future<void> submitWorkoutResult(WorkoutResult result) async {
+    throw const RepositoryException('Submission failed.');
+  }
 }

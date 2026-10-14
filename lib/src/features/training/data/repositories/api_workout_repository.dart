@@ -31,27 +31,49 @@ class ApiWorkoutRepository implements WorkoutRepository {
 
   @override
   Future<void> submitWorkoutResult(WorkoutResult result) async {
-    throw const RepositoryException(
-      'Workout result submission is not implemented for the API yet.',
+    await _apiClient.post(
+      '/v1/workouts/${result.workoutId}/results',
+      body: {
+        'completed_at': result.completedAt.toUtc().toIso8601String(),
+        'notes': result.notes,
+        'sets': [
+          for (final setResult in result.setResults)
+            {
+              'set_id': setResult.setId,
+              'actual_reps': setResult.actualReps,
+              'actual_weight': setResult.actualWeight,
+              'weight_unit': _weightUnitToJson(setResult.weightUnit),
+              'rpe': setResult.rpe,
+              'completed': setResult.completed,
+              'notes': setResult.notes,
+            },
+        ],
+      },
     );
   }
 
   @override
   Future<List<WorkoutHistoryEntry>> getWorkoutHistory(String athleteId) async {
-    throw const RepositoryException(
-      'Workout history is not implemented for the API yet.',
+    // TODO: Remove athleteId after JWT auth makes /athletes/me authoritative.
+    final json = await _apiClient.get(
+      '/v1/athletes/me/workout-history?page=1&per_page=20',
     );
+    return _historyFromEnvelope(json);
   }
 
   Workout _workoutFromEnvelope(Map<String, dynamic> json) {
     final data = json['data'];
     if (data is! Map<String, dynamic>) {
-      throw const RepositoryException('Server returned malformed workout data.');
+      throw const RepositoryException(
+        'Server returned malformed workout data.',
+      );
     }
 
     final exercises = data['exercises'];
     if (exercises is! List) {
-      throw const RepositoryException('Server returned malformed workout data.');
+      throw const RepositoryException(
+        'Server returned malformed workout data.',
+      );
     }
 
     return Workout(
@@ -65,13 +87,17 @@ class ApiWorkoutRepository implements WorkoutRepository {
 
   ExercisePrescription _exerciseFromJson(Object? value) {
     if (value is! Map<String, dynamic>) {
-      throw const RepositoryException('Server returned malformed exercise data.');
+      throw const RepositoryException(
+        'Server returned malformed exercise data.',
+      );
     }
 
     final exercise = value['exercise'];
     final sets = value['sets'];
     if (exercise is! Map<String, dynamic> || sets is! List) {
-      throw const RepositoryException('Server returned malformed exercise data.');
+      throw const RepositoryException(
+        'Server returned malformed exercise data.',
+      );
     }
 
     return ExercisePrescription(
@@ -89,10 +115,62 @@ class ApiWorkoutRepository implements WorkoutRepository {
     }
 
     return ExerciseSet(
+      id: _readString(value, 'id'),
       setNumber: _readInt(value, 'set_number'),
       targetReps: _readInt(value, 'target_reps'),
       targetWeight: _readDouble(value, 'target_weight'),
       weightUnit: _weightUnitFromJson(_readString(value, 'weight_unit')),
+    );
+  }
+
+  List<WorkoutHistoryEntry> _historyFromEnvelope(Map<String, dynamic> json) {
+    final data = json['data'];
+    if (data is! List) {
+      throw const RepositoryException(
+        'Server returned malformed history data.',
+      );
+    }
+    return data.map(_historyEntryFromJson).toList(growable: false);
+  }
+
+  WorkoutHistoryEntry _historyEntryFromJson(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const RepositoryException(
+        'Server returned malformed history data.',
+      );
+    }
+    final sets = value['sets'];
+    if (sets is! List) {
+      throw const RepositoryException(
+        'Server returned malformed history data.',
+      );
+    }
+    return WorkoutHistoryEntry(
+      workoutId: _readString(value, 'workout_id'),
+      workoutTitle: _readString(value, 'workout_title'),
+      completedAt: _readDateTime(value, 'completed_at'),
+      setResults: sets.map(_historySetFromJson).toList(growable: false),
+      notes: _readOptionalString(value, 'notes'),
+    );
+  }
+
+  SetResult _historySetFromJson(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const RepositoryException(
+        'Server returned malformed history data.',
+      );
+    }
+    return SetResult(
+      setId: _readString(value, 'set_id'),
+      prescriptionId: _readString(value, 'prescription_id'),
+      exerciseId: _readString(value, 'exercise_id'),
+      setNumber: _readInt(value, 'set_number'),
+      actualReps: _readInt(value, 'actual_reps'),
+      actualWeight: _readDouble(value, 'actual_weight'),
+      weightUnit: _weightUnitFromJson(_readString(value, 'weight_unit')),
+      completed: _readBool(value, 'completed'),
+      rpe: _readOptionalDouble(value, 'rpe'),
+      notes: _readOptionalString(value, 'notes'),
     );
   }
 
@@ -103,6 +181,13 @@ class ApiWorkoutRepository implements WorkoutRepository {
       _ => throw const RepositoryException(
         'Server returned an unsupported weight unit.',
       ),
+    };
+  }
+
+  String _weightUnitToJson(WeightUnit value) {
+    return switch (value) {
+      WeightUnit.kg => 'kg',
+      WeightUnit.lb => 'lb',
     };
   }
 
@@ -139,5 +224,34 @@ class ApiWorkoutRepository implements WorkoutRepository {
       return value.toDouble();
     }
     throw const RepositoryException('Server returned malformed workout data.');
+  }
+
+  double? _readOptionalDouble(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value == null) {
+      return null;
+    }
+    if (value is num) {
+      return value.toDouble();
+    }
+    throw const RepositoryException('Server returned malformed history data.');
+  }
+
+  bool _readBool(Map<String, dynamic> json, String key) {
+    final value = json[key];
+    if (value is bool) {
+      return value;
+    }
+    throw const RepositoryException('Server returned malformed history data.');
+  }
+
+  DateTime _readDateTime(Map<String, dynamic> json, String key) {
+    try {
+      return DateTime.parse(_readString(json, key));
+    } on FormatException {
+      throw const RepositoryException(
+        'Server returned malformed history data.',
+      );
+    }
   }
 }

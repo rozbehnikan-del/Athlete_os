@@ -28,24 +28,28 @@ class MockWorkoutRepository implements WorkoutRepository {
         coachingNote: 'Stay braced and control the descent.',
         sets: const [
           ExerciseSet(
+            id: 'back-squat-set-1',
             setNumber: 1,
             targetReps: 8,
             targetWeight: 80,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'back-squat-set-2',
             setNumber: 2,
             targetReps: 8,
             targetWeight: 80,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'back-squat-set-3',
             setNumber: 3,
             targetReps: 8,
             targetWeight: 80,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'back-squat-set-4',
             setNumber: 4,
             targetReps: 8,
             targetWeight: 80,
@@ -61,18 +65,21 @@ class MockWorkoutRepository implements WorkoutRepository {
         coachingNote: 'Keep the bar close and hips back.',
         sets: const [
           ExerciseSet(
+            id: 'romanian-deadlift-set-1',
             setNumber: 1,
             targetReps: 10,
             targetWeight: 70,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'romanian-deadlift-set-2',
             setNumber: 2,
             targetReps: 10,
             targetWeight: 70,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'romanian-deadlift-set-3',
             setNumber: 3,
             targetReps: 10,
             targetWeight: 70,
@@ -88,18 +95,21 @@ class MockWorkoutRepository implements WorkoutRepository {
         coachingNote: 'Smooth steps, tall posture.',
         sets: const [
           ExerciseSet(
+            id: 'walking-lunges-set-1',
             setNumber: 1,
             targetReps: 12,
             targetWeight: 20,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'walking-lunges-set-2',
             setNumber: 2,
             targetReps: 12,
             targetWeight: 20,
             weightUnit: WeightUnit.kg,
           ),
           ExerciseSet(
+            id: 'walking-lunges-set-3',
             setNumber: 3,
             targetReps: 12,
             targetWeight: 20,

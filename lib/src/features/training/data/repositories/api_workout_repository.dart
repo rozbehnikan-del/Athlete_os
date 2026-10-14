@@ -110,6 +110,7 @@ class ApiWorkoutRepository implements WorkoutRepository {
     return ExercisePrescription(
       id: _readString(value, 'prescription_id'),
       exerciseId: _readString(exercise, 'id'),
+      exerciseSlug: _readString(exercise, 'slug'),
       name: _readString(exercise, 'name'),
       coachingNote: _readOptionalString(value, 'coaching_note'),
       sets: sets.map(_setFromJson),

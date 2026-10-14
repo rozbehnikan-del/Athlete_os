@@ -15,6 +15,7 @@ void main() {
   ExercisePrescription prescription() => ExercisePrescription(
     id: 'back-squat-prescription',
     exerciseId: 'back-squat',
+    exerciseSlug: 'back-squat',
     name: 'Back Squat',
     category: 'Strength',
     sets: const [
@@ -130,7 +131,8 @@ void main() {
 
     expect(workout.id, 'today-lower-strength');
     expect(workout.exercises.first.sets.first.id, 'back-squat-set-1');
-    expect(workout.exercises.first.exerciseId, 'back-squat');
+    expect(workout.exercises.first.exerciseId, 'back-squat-id');
+    expect(workout.exercises.first.exerciseSlug, 'back-squat');
     expect(firstSet.targetReps, 8);
     expect(firstSet.targetWeight, 80);
     expect(firstSet.weightUnit, WeightUnit.kg);
@@ -252,6 +254,22 @@ void main() {
     expect(draft.copyWith(rpe: 0).isValid, isFalse);
     expect(draft.copyWith(rpe: 11).isValid, isFalse);
     expect(draft.copyWith(rpe: 7.5).isValid, isTrue);
+  });
+
+  test('missing weight unit does not create a submittable result', () {
+    const draft = SetResultDraft(
+      setId: 'back-squat-set-1',
+      prescriptionId: 'back-squat-prescription',
+      exerciseId: 'back-squat-id',
+      setNumber: 1,
+      repsInput: '8',
+      weightInput: '80',
+      weightUnit: null,
+    );
+
+    expect(draft.weightUnit, isNull);
+    expect(draft.isValid, isFalse);
+    expect(() => draft.toResult(), throwsStateError);
   });
 
   test('RPE can be cleared to null', () {
@@ -525,6 +543,7 @@ void main() {
         ExercisePrescription(
           id: 'deadlift-prescription',
           exerciseId: 'romanian-deadlift',
+          exerciseSlug: 'romanian-deadlift',
           name: 'Romanian Deadlift',
           sets: const [
             ExerciseSet(
@@ -574,6 +593,7 @@ void main() {
         ExercisePrescription(
           id: 'back-squat-warmup',
           exerciseId: 'back-squat',
+          exerciseSlug: 'back-squat',
           name: 'Back Squat Warmup',
           sets: const [
             ExerciseSet(
@@ -588,6 +608,7 @@ void main() {
         ExercisePrescription(
           id: 'back-squat-strength',
           exerciseId: 'back-squat',
+          exerciseSlug: 'back-squat',
           name: 'Back Squat Strength',
           sets: const [
             ExerciseSet(

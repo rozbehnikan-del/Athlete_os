@@ -1,16 +1,16 @@
 import '../domain/entities/exercise_prescription.dart';
 import '../domain/entities/exercise_set.dart';
 
-String exerciseImagePath(String exerciseId) => switch (exerciseId) {
+String exerciseImagePath(String slug) => switch (slug) {
   'back-squat' => 'assets/images/exercises/back_squat.jpg',
   'romanian-deadlift' => 'assets/images/exercises/romanian_deadlift.jpg',
   'walking-lunges' => 'assets/images/exercises/walking_lunges.jpg',
   _ => 'assets/images/exercises/back_squat.jpg',
 };
 
-String exerciseHeroImagePath(String exerciseId) => switch (exerciseId) {
+String exerciseHeroImagePath(String slug) => switch (slug) {
   'back-squat' => 'assets/images/exercises/back_squat_hero.jpg',
-  _ => exerciseImagePath(exerciseId),
+  _ => exerciseImagePath(slug),
 };
 
 String weightUnitLabel(WeightUnit unit) => switch (unit) {

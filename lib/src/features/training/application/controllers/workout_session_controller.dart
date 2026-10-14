@@ -36,7 +36,7 @@ class SetResultDraft {
   final int setNumber;
   final String repsInput;
   final String weightInput;
-  final WeightUnit weightUnit;
+  final WeightUnit? weightUnit;
   final bool completed;
   final double? rpe;
   final String? notes;
@@ -45,8 +45,10 @@ class SetResultDraft {
   double? get actualWeight => double.tryParse(weightInput);
   bool get hasValidReps => actualReps != null && actualReps! >= 0;
   bool get hasValidWeight => actualWeight != null && actualWeight! >= 0;
+  bool get hasWeightUnit => weightUnit != null;
   bool get hasValidRpe => rpe == null || (rpe! >= 1 && rpe! <= 10);
-  bool get isValid => hasValidReps && hasValidWeight && hasValidRpe;
+  bool get isValid =>
+      hasValidReps && hasValidWeight && hasWeightUnit && hasValidRpe;
 
   SetResultDraft copyWith({
     String? repsInput,
@@ -75,18 +77,23 @@ class SetResultDraft {
     );
   }
 
-  SetResult toResult() => SetResult(
-    setId: setId,
-    prescriptionId: prescriptionId,
-    exerciseId: exerciseId,
-    setNumber: setNumber,
-    actualReps: actualReps!,
-    actualWeight: actualWeight!,
-    weightUnit: weightUnit,
-    completed: completed,
-    rpe: rpe,
-    notes: notes,
-  );
+  SetResult toResult() {
+    if (!isValid) {
+      throw StateError('Set result draft is not valid.');
+    }
+    return SetResult(
+      setId: setId,
+      prescriptionId: prescriptionId,
+      exerciseId: exerciseId,
+      setNumber: setNumber,
+      actualReps: actualReps!,
+      actualWeight: actualWeight!,
+      weightUnit: weightUnit!,
+      completed: completed,
+      rpe: rpe,
+      notes: notes,
+    );
+  }
 }
 
 class WorkoutSessionState {
@@ -193,7 +200,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
           setNumber: set.setNumber,
           repsInput: set.targetReps?.toString() ?? '',
           weightInput: _targetWeightInput(set),
-          weightUnit: set.weightUnit ?? WeightUnit.kg,
+          weightUnit: set.weightUnit,
         );
       }
     }

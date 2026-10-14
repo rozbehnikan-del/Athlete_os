@@ -124,7 +124,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                     Positioned.fill(
                       child: Image(
                         image: AssetImage(
-                          exerciseHeroImagePath(exercise.exerciseId),
+                          exerciseHeroImagePath(exercise.exerciseSlug),
                         ),
                         fit: BoxFit.cover,
                         alignment: Alignment.center,
@@ -545,7 +545,7 @@ class _TrainingTodayView extends ConsumerWidget {
                               width: 48,
                               height: 48,
                               child: Image.asset(
-                                exerciseImagePath(exercise.exerciseId),
+                                exerciseImagePath(exercise.exerciseSlug),
                                 fit: BoxFit.cover,
                               ),
                             ),

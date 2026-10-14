@@ -15,6 +15,7 @@ import '../../../../core/widgets/section_header.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../../../app/router/routes.dart';
 import '../../../training/application/controllers/workout_controller.dart';
+import '../../../training/domain/entities/workout.dart';
 import '../../../training/domain/entities/exercise_prescription.dart';
 import '../../../training/presentation/training_formatters.dart';
 
@@ -177,13 +178,14 @@ class _TodayWorkoutCard extends ConsumerWidget {
                               l.todaysWorkout,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            Text(
-                              '${l.strength} (${l.lowerBody})',
-                              style: const TextStyle(
-                                color: AppColors.textMuted,
-                                fontWeight: FontWeight.w700,
+                            if (_workoutMetadata(workout).isNotEmpty)
+                              Text(
+                                _workoutMetadata(workout),
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontWeight: FontWeight.w700,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
@@ -232,6 +234,18 @@ class _TodayWorkoutCard extends ConsumerWidget {
   }
 }
 
+String _workoutMetadata(Workout workout) {
+  final category = workout.category.trim();
+  final focus = workout.focus.trim();
+  if (category.isEmpty) {
+    return focus;
+  }
+  if (focus.isEmpty) {
+    return category;
+  }
+  return '$category ($focus)';
+}
+
 class _ExerciseLine extends StatelessWidget {
   const _ExerciseLine({required this.exercise, this.complete = false});
 
@@ -250,7 +264,7 @@ class _ExerciseLine extends StatelessWidget {
               width: 52,
               height: 52,
               child: Image.asset(
-                exerciseImagePath(exercise.exerciseId),
+                exerciseImagePath(exercise.exerciseSlug),
                 fit: BoxFit.cover,
               ),
             ),

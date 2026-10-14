@@ -8,6 +8,7 @@ import 'package:athlete_os/src/features/training/data/repositories/api_workout_r
 import 'package:athlete_os/src/features/training/data/repositories/mock_workout_repository.dart';
 import 'package:athlete_os/src/features/training/domain/entities/exercise_set.dart';
 import 'package:athlete_os/src/features/training/domain/entities/workout_result.dart';
+import 'package:athlete_os/src/features/training/presentation/training_formatters.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
@@ -49,7 +50,11 @@ void main() {
       expect(workout.category, 'Strength');
       expect(workout.focus, 'Lower Body');
       expect(workout.exercises.first.id, 'back-squat-prescription');
-      expect(workout.exercises.first.exerciseId, 'back-squat-id');
+      expect(
+        workout.exercises.first.exerciseId,
+        '33333333-3333-4333-8333-333333333333',
+      );
+      expect(workout.exercises.first.exerciseSlug, 'back-squat');
       expect(workout.exercises.first.name, 'Back Squat');
       expect(workout.exercises.first.coachingNote, 'Stay braced.');
       expect(workout.exercises.first.sets.first.setNumber, 1);
@@ -106,6 +111,7 @@ void main() {
       expect(workout.exercises[0].name, 'Back Squat');
       expect(workout.exercises[0].sets, hasLength(4));
       expect(workout.exercises[1].name, 'Romanian Deadlift');
+      expect(workout.exercises[1].exerciseSlug, 'romanian-deadlift');
       expect(workout.exercises[1].sets, hasLength(3));
       expect(workout.exercises[2].name, 'Walking Lunges');
       expect(workout.exercises[2].sets, hasLength(3));
@@ -119,6 +125,39 @@ void main() {
       final workout = (await repository.getTodayWorkout('athlete-ali'))!;
 
       expect(workout.exercises.first.sets.first.weightUnit, WeightUnit.kg);
+    });
+
+    test('image formatter uses exercise slug, not UUID identity', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse(workoutEnvelope()),
+      );
+
+      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final rdl = workout.exercises[1];
+
+      expect(rdl.exerciseId, '44444444-4444-4444-8444-444444444444');
+      expect(
+        exerciseImagePath(rdl.exerciseSlug),
+        'assets/images/exercises/romanian_deadlift.jpg',
+      );
+      expect(
+        exerciseImagePath(rdl.exerciseId),
+        'assets/images/exercises/back_squat.jpg',
+      );
+    });
+
+    test('missing exercise slug is rejected at API boundary', () async {
+      final body = workoutEnvelope();
+      final exercises =
+          (body['data'] as Map<String, dynamic>)['exercises'] as List;
+      final firstExercise = exercises.first as Map<String, dynamic>;
+      (firstExercise['exercise'] as Map<String, dynamic>)['slug'] = null;
+      final repository = repositoryFor((_) async => jsonResponse(body));
+
+      expect(
+        repository.getTodayWorkout('athlete-ali'),
+        throwsA(isA<RepositoryException>()),
+      );
     });
 
     test('submitWorkoutResult posts correct JSON payload', () async {
@@ -396,7 +435,7 @@ Map<String, dynamic> workoutEnvelope({
       'exercises': [
         exerciseJson(
           prescriptionId: 'back-squat-prescription',
-          exerciseId: 'back-squat-id',
+          exerciseId: '33333333-3333-4333-8333-333333333333',
           slug: 'back-squat',
           name: 'Back Squat',
           coachingNote: 'Stay braced.',
@@ -407,7 +446,7 @@ Map<String, dynamic> workoutEnvelope({
         ),
         exerciseJson(
           prescriptionId: 'romanian-deadlift-prescription',
-          exerciseId: 'romanian-deadlift-id',
+          exerciseId: '44444444-4444-4444-8444-444444444444',
           slug: 'romanian-deadlift',
           name: 'Romanian Deadlift',
           coachingNote: 'Keep the bar close.',
@@ -417,7 +456,7 @@ Map<String, dynamic> workoutEnvelope({
         ),
         exerciseJson(
           prescriptionId: 'walking-lunges-prescription',
-          exerciseId: 'walking-lunges-id',
+          exerciseId: '55555555-5555-4555-8555-555555555555',
           slug: 'walking-lunges',
           name: 'Walking Lunges',
           coachingNote: 'Tall posture.',

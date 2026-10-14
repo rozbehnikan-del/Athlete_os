@@ -22,7 +22,8 @@ class MockWorkoutRepository implements WorkoutRepository {
     exercises: [
       ExercisePrescription(
         id: 'back-squat-prescription',
-        exerciseId: 'back-squat',
+        exerciseId: 'back-squat-id',
+        exerciseSlug: 'back-squat',
         name: 'Back Squat',
         category: 'Strength',
         coachingNote: 'Stay braced and control the descent.',
@@ -59,7 +60,8 @@ class MockWorkoutRepository implements WorkoutRepository {
       ),
       ExercisePrescription(
         id: 'romanian-deadlift-prescription',
-        exerciseId: 'romanian-deadlift',
+        exerciseId: 'romanian-deadlift-id',
+        exerciseSlug: 'romanian-deadlift',
         name: 'Romanian Deadlift',
         category: 'Strength',
         coachingNote: 'Keep the bar close and hips back.',
@@ -89,7 +91,8 @@ class MockWorkoutRepository implements WorkoutRepository {
       ),
       ExercisePrescription(
         id: 'walking-lunges-prescription',
-        exerciseId: 'walking-lunges',
+        exerciseId: 'walking-lunges-id',
+        exerciseSlug: 'walking-lunges',
         name: 'Walking Lunges',
         category: 'Strength',
         coachingNote: 'Smooth steps, tall posture.',

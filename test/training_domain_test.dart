@@ -100,7 +100,6 @@ void main() {
     final repository = MockWorkoutRepository();
     final result = WorkoutResult(
       workoutId: 'today-lower-strength',
-      athleteId: 'athlete-ali',
       completedAt: DateTime.utc(2026, 10, 13),
       setResults: const [
         SetResult(
@@ -126,7 +125,7 @@ void main() {
   test('MockWorkoutRepository returns structured workout data', () async {
     final repository = MockWorkoutRepository();
 
-    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+    final workout = (await repository.getTodayWorkout())!;
     final firstSet = workout.exercises.first.sets.first;
 
     expect(workout.id, 'today-lower-strength');
@@ -145,7 +144,7 @@ void main() {
   test('MockWorkoutRepository exposes stable ExerciseSet IDs', () async {
     final repository = MockWorkoutRepository();
 
-    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+    final workout = (await repository.getTodayWorkout())!;
     final ids = [
       for (final exercise in workout.exercises)
         for (final set in exercise.sets) set.id,
@@ -169,7 +168,6 @@ void main() {
     final repository = MockWorkoutRepository();
 
     final workout = await repository.getWorkoutById(
-      athleteId: 'athlete-ali',
       workoutId: 'today-lower-strength',
     );
 
@@ -178,7 +176,7 @@ void main() {
 
   test('WorkoutSession initializes actual values from target', () async {
     final repository = MockWorkoutRepository();
-    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+    final workout = (await repository.getTodayWorkout())!;
     final firstSet = workout.exercises.first.sets.first;
     final state = WorkoutSessionState(
       workout: workout,
@@ -330,7 +328,7 @@ void main() {
 
   test('Completing full session builds correct WorkoutResult', () async {
     final repository = MockWorkoutRepository();
-    final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+    final workout = (await repository.getTodayWorkout())!;
     final drafts = {
       for (final exercise in workout.exercises)
         for (final set in exercise.sets)
@@ -353,10 +351,7 @@ void main() {
       workoutNote: 'Felt strong today',
     );
 
-    final result = state.buildResult(
-      athleteId: 'athlete-ali',
-      completedAt: DateTime.utc(2026, 10, 13),
-    );
+    final result = state.buildResult(completedAt: DateTime.utc(2026, 10, 13));
 
     expect(result.setResults.length, state.totalSets);
     expect(result.notes, 'Felt strong today');
@@ -366,7 +361,6 @@ void main() {
     final repository = MockWorkoutRepository();
     final result = WorkoutResult(
       workoutId: 'today-lower-strength',
-      athleteId: 'athlete-ali',
       completedAt: DateTime.utc(2026, 10, 13),
       setResults: const [
         SetResult(
@@ -384,7 +378,7 @@ void main() {
 
     await repository.submitWorkoutResult(result);
 
-    final history = await repository.getWorkoutHistory('athlete-ali');
+    final history = await repository.getWorkoutHistory();
     expect(history.single.workoutId, result.workoutId);
     expect(history.single.workoutTitle, "Today's Workout");
   });
@@ -561,7 +555,6 @@ void main() {
     await repository.submitWorkoutResult(
       WorkoutResult(
         workoutId: workout.id,
-        athleteId: 'athlete-ali',
         completedAt: DateTime.utc(2026, 10, 13),
         setResults: const [
           SetResult(
@@ -578,7 +571,7 @@ void main() {
       ),
     );
 
-    final history = await repository.getWorkoutHistory('athlete-ali');
+    final history = await repository.getWorkoutHistory();
 
     expect(history.single.workoutTitle, 'Open Prep Strength');
   });
@@ -646,9 +639,9 @@ class FailingSubmitWorkoutRepository extends MockWorkoutRepository {
   int todayCalls = 0;
 
   @override
-  Future<Workout?> getTodayWorkout(String athleteId) async {
+  Future<Workout?> getTodayWorkout() async {
     todayCalls += 1;
-    return super.getTodayWorkout(athleteId);
+    return super.getTodayWorkout();
   }
 
   @override
@@ -659,17 +652,17 @@ class FailingSubmitWorkoutRepository extends MockWorkoutRepository {
 
 class NoTodayWorkoutRepository extends MockWorkoutRepository {
   @override
-  Future<Workout?> getTodayWorkout(String athleteId) async => null;
+  Future<Workout?> getTodayWorkout() async => null;
 }
 
 class TodayRefreshWorkoutRepository extends MockWorkoutRepository {
   int todayCalls = 0;
 
   @override
-  Future<Workout?> getTodayWorkout(String athleteId) async {
+  Future<Workout?> getTodayWorkout() async {
     todayCalls += 1;
     if (todayCalls == 1) {
-      return super.getTodayWorkout(athleteId);
+      return super.getTodayWorkout();
     }
     return null;
   }

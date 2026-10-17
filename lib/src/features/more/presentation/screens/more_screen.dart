@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/application/auth_controller.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../app/router/routes.dart';
@@ -11,7 +13,7 @@ import '../../../../core/widgets/surface_decoration.dart';
 
 // ignore_for_file: deprecated_member_use
 
-class MoreScreen extends StatelessWidget {
+class MoreScreen extends ConsumerWidget {
   const MoreScreen({
     super.key,
     required this.locale,
@@ -21,7 +23,7 @@ class MoreScreen extends StatelessWidget {
   final ValueChanged<Locale> onLocaleChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
     final items = [
       (l.careTeam, Icons.groups_rounded, AppRoutes.careTeam),
@@ -55,6 +57,11 @@ class MoreScreen extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 12),
+          ListTile(
+            leading: const Icon(Icons.logout),
+            title: const Text('Sign Out'),
+            onTap: () => ref.read(authControllerProvider.notifier).logout(),
+          ),
           Container(
             padding: const EdgeInsets.all(18),
             decoration: lightBoxDecoration(),

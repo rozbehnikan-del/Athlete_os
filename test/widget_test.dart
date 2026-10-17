@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'helpers/test_viewport.dart';
+import 'helpers/fake_auth_repository.dart';
+import 'package:athlete_os/src/features/auth/application/auth_controller.dart';
 
 Future<void> tapCompleteSet(WidgetTester tester) async {
   final finder = find.text('Complete Set');
@@ -31,6 +33,7 @@ Future<void> expectVisibleText(String text, WidgetTester tester) async {
 Widget testApp() {
   return ProviderScope(
     overrides: [
+      authRepositoryProvider.overrideWith((ref) => FakeAuthRepository()),
       workoutRepositoryProvider.overrideWith((ref) => MockWorkoutRepository()),
     ],
     child: const AthleteOSApp(),
@@ -40,6 +43,7 @@ Widget testApp() {
 void main() {
   testWidgets('AthleteOS starts on onboarding and enters app', (tester) async {
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('Train.\nProgress.\nCompete.'), findsOneWidget);
     await tester.tap(find.text('Get Started'));
@@ -51,6 +55,7 @@ void main() {
 
   testWidgets('English is the default locale', (tester) async {
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     expect(find.text('Get Started'), findsOneWidget);
   });
@@ -58,6 +63,7 @@ void main() {
   testWidgets('Persian locale can be selected', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -76,6 +82,7 @@ void main() {
   testWidgets('main navigation routes correctly', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -88,6 +95,7 @@ void main() {
   testWidgets('Start Workout navigates to workout session', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -101,6 +109,7 @@ void main() {
   testWidgets('Completing and editing a set updates UI', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -116,6 +125,7 @@ void main() {
   testWidgets('invalid reps cannot complete a set', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -135,6 +145,7 @@ void main() {
   testWidgets('invalid weight cannot complete a set', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -154,6 +165,7 @@ void main() {
   testWidgets('Training Today and History tabs work', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -177,6 +189,7 @@ void main() {
   testWidgets('Navigation through sets and exercises works', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -193,6 +206,7 @@ void main() {
   testWidgets('Finish Workout confirmation appears', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
@@ -209,6 +223,7 @@ void main() {
   testWidgets('Completed workout appears in History', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();

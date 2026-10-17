@@ -124,13 +124,10 @@ class MockWorkoutRepository implements WorkoutRepository {
   );
 
   @override
-  Future<Workout?> getTodayWorkout(String athleteId) async => _todayWorkout;
+  Future<Workout?> getTodayWorkout() async => _todayWorkout;
 
   @override
-  Future<Workout> getWorkoutById({
-    required String athleteId,
-    required String workoutId,
-  }) async {
+  Future<Workout> getWorkoutById({required String workoutId}) async {
     final workout = _workouts[workoutId];
     if (workout != null) {
       return workout;
@@ -144,20 +141,18 @@ class MockWorkoutRepository implements WorkoutRepository {
   }
 
   @override
-  Future<List<WorkoutHistoryEntry>> getWorkoutHistory(String athleteId) async =>
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory() async =>
       List.unmodifiable(
-        _submittedResults
-            .where((result) => result.athleteId == athleteId)
-            .map(
-              (result) => WorkoutHistoryEntry(
-                workoutId: result.workoutId,
-                workoutTitle:
-                    _workouts[result.workoutId]?.title ?? result.workoutId,
-                completedAt: result.completedAt,
-                setResults: result.setResults,
-                notes: result.notes,
-              ),
-            ),
+        _submittedResults.map(
+          (result) => WorkoutHistoryEntry(
+            workoutId: result.workoutId,
+            workoutTitle:
+                _workouts[result.workoutId]?.title ?? result.workoutId,
+            completedAt: result.completedAt,
+            setResults: result.setResults,
+            notes: result.notes,
+          ),
+        ),
       );
 
   List<WorkoutResult> get submittedResults =>

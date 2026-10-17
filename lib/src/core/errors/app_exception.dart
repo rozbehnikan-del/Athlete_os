@@ -14,3 +14,8 @@ class UnauthorizedOperationException extends AppException {
 class RepositoryException extends AppException {
   const RepositoryException(super.message);
 }
+
+class SessionExpiredException extends RepositoryException {
+  const SessionExpiredException()
+    : super('Your session has expired. Please sign in again.');
+}

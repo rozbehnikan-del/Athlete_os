@@ -13,18 +13,13 @@ class ApiWorkoutRepository implements WorkoutRepository {
   final ApiClient _apiClient;
 
   @override
-  Future<Workout?> getTodayWorkout(String athleteId) async {
-    // TODO: Remove athleteId after JWT auth makes /athletes/me authoritative.
+  Future<Workout?> getTodayWorkout() async {
     final json = await _apiClient.get('/v1/athletes/me/workouts/today');
     return _nullableWorkoutFromEnvelope(json);
   }
 
   @override
-  Future<Workout> getWorkoutById({
-    required String athleteId,
-    required String workoutId,
-  }) async {
-    // TODO: Remove athleteId after JWT auth makes workout ownership server-side.
+  Future<Workout> getWorkoutById({required String workoutId}) async {
     final json = await _apiClient.get('/v1/workouts/$workoutId');
     return _workoutFromEnvelope(json);
   }
@@ -53,8 +48,7 @@ class ApiWorkoutRepository implements WorkoutRepository {
   }
 
   @override
-  Future<List<WorkoutHistoryEntry>> getWorkoutHistory(String athleteId) async {
-    // TODO: Remove athleteId after JWT auth makes /athletes/me authoritative.
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory() async {
     final json = await _apiClient.get(
       '/v1/athletes/me/workout-history?page=1&per_page=20',
     );

@@ -3,12 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/repositories/mock_care_team_repository.dart';
 import '../domain/entities/professional.dart';
 import '../domain/repositories/care_team_repository.dart';
+import '../../auth/application/auth_controller.dart';
 
 final careTeamRepositoryProvider = Provider<CareTeamRepository>(
   (ref) => MockCareTeamRepository(),
 );
 
-final professionalsProvider = FutureProvider<List<Professional>>(
-  (ref) =>
-      ref.watch(careTeamRepositoryProvider).getProfessionals('athlete-ali'),
-);
+final professionalsProvider = FutureProvider<List<Professional>>((ref) async {
+  final user = await ref.watch(authControllerProvider.future);
+  if (user == null) return [];
+  return ref.watch(careTeamRepositoryProvider).getProfessionals(user.id);
+});

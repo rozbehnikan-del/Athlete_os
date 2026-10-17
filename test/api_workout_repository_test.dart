@@ -43,7 +43,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope(id: 'today-workout')),
       );
 
-      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final workout = (await repository.getTodayWorkout())!;
 
       expect(workout.id, 'today-workout');
       expect(workout.title, "Today's Workout");
@@ -71,7 +71,7 @@ void main() {
         (_) async => jsonResponse({'data': null}),
       );
 
-      final workout = await repository.getTodayWorkout('athlete-ali');
+      final workout = await repository.getTodayWorkout();
 
       expect(workout, isNull);
     });
@@ -81,7 +81,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope(category: null, focus: null)),
       );
 
-      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final workout = (await repository.getTodayWorkout())!;
 
       expect(workout.category, '');
       expect(workout.focus, '');
@@ -92,7 +92,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope(nullableFirstSet: true)),
       );
 
-      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final workout = (await repository.getTodayWorkout())!;
       final set = workout.exercises.first.sets.first;
 
       expect(set.targetReps, isNull);
@@ -105,7 +105,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope()),
       );
 
-      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final workout = (await repository.getTodayWorkout())!;
 
       expect(workout.exercises, hasLength(3));
       expect(workout.exercises[0].name, 'Back Squat');
@@ -122,7 +122,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope()),
       );
 
-      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final workout = (await repository.getTodayWorkout())!;
 
       expect(workout.exercises.first.sets.first.weightUnit, WeightUnit.kg);
     });
@@ -132,7 +132,7 @@ void main() {
         (_) async => jsonResponse(workoutEnvelope()),
       );
 
-      final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+      final workout = (await repository.getTodayWorkout())!;
       final rdl = workout.exercises[1];
 
       expect(rdl.exerciseId, '44444444-4444-4444-8444-444444444444');
@@ -151,13 +151,13 @@ void main() {
       final exercises =
           (body['data'] as Map<String, dynamic>)['exercises'] as List;
       final firstExercise = exercises.first as Map<String, dynamic>;
-      (firstExercise['exercise'] as Map<String, dynamic>)['slug'] = null;
+      firstExercise['exercise'] = <String, dynamic>{
+        ...firstExercise['exercise'] as Map<String, dynamic>,
+        'slug': null,
+      };
       final repository = repositoryFor((_) async => jsonResponse(body));
 
-      expect(
-        repository.getTodayWorkout('athlete-ali'),
-        throwsA(isA<RepositoryException>()),
-      );
+      expect(repository.getTodayWorkout(), throwsA(isA<RepositoryException>()));
     });
 
     test('submitWorkoutResult posts correct JSON payload', () async {
@@ -181,7 +181,6 @@ void main() {
       await repository.submitWorkoutResult(
         WorkoutResult(
           workoutId: 'workout-123',
-          athleteId: 'athlete-ali',
           completedAt: DateTime.parse('2026-10-14T12:45:30+03:30'),
           notes: 'Done.',
           setResults: const [
@@ -231,7 +230,7 @@ void main() {
         return jsonResponse(historyEnvelope());
       });
 
-      final history = await repository.getWorkoutHistory('athlete-ali');
+      final history = await repository.getWorkoutHistory();
       final entry = history.single;
       final firstSet = entry.setResults.first;
       final secondSet = entry.setResults.last;
@@ -254,7 +253,7 @@ void main() {
         (_) async => jsonResponse(historyEnvelope(includeOlder: true)),
       );
 
-      final history = await repository.getWorkoutHistory('athlete-ali');
+      final history = await repository.getWorkoutHistory();
 
       expect(history.map((entry) => entry.workoutId), [
         'workout-123',
@@ -268,7 +267,7 @@ void main() {
       );
 
       expect(
-        repository.getWorkoutHistory('athlete-ali'),
+        repository.getWorkoutHistory(),
         throwsA(isA<RepositoryException>()),
       );
     });
@@ -280,10 +279,7 @@ void main() {
         return jsonResponse(workoutEnvelope(id: 'workout-123'));
       });
 
-      final workout = await repository.getWorkoutById(
-        athleteId: 'athlete-ali',
-        workoutId: 'workout-123',
-      );
+      final workout = await repository.getWorkoutById(workoutId: 'workout-123');
 
       expect(requestedUri.path, '/v1/workouts/workout-123');
       expect(workout.id, 'workout-123');
@@ -300,10 +296,7 @@ void main() {
       );
 
       expect(
-        repository.getWorkoutById(
-          athleteId: 'athlete-ali',
-          workoutId: 'missing',
-        ),
+        repository.getWorkoutById(workoutId: 'missing'),
         throwsA(
           isA<RepositoryException>().having(
             (exception) => exception.message,
@@ -319,10 +312,7 @@ void main() {
         (_) async => http.Response('{not-json', 200),
       );
 
-      expect(
-        repository.getTodayWorkout('athlete-ali'),
-        throwsA(isA<RepositoryException>()),
-      );
+      expect(repository.getTodayWorkout(), throwsA(isA<RepositoryException>()));
     });
 
     test(
@@ -337,7 +327,7 @@ void main() {
         addTearDown(container.dispose);
 
         final repository = container.read(workoutRepositoryProvider);
-        final workout = (await repository.getTodayWorkout('athlete-ali'))!;
+        final workout = (await repository.getTodayWorkout())!;
 
         expect(identical(repository, mockRepository), isTrue);
         expect(workout.title, "Today's Workout");

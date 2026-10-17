@@ -6,6 +6,22 @@ import '../../l10n/app_localizations.dart';
 import 'application/app_locale_controller.dart';
 import 'router/app_router.dart';
 import '../core/theme/app_theme.dart';
+import '../features/auth/application/auth_controller.dart';
+
+final _routerProvider = Provider((ref) {
+  final locale = ref.watch(appLocaleControllerProvider);
+  final refresh = ValueNotifier<int>(0);
+  ref.listen(authControllerProvider, (_, _) => refresh.value++);
+  final router = createAppRouter(
+    locale: locale,
+    onLocaleChanged: ref.read(appLocaleControllerProvider.notifier).setLocale,
+    authState: () => ref.read(authControllerProvider),
+    authRefresh: refresh,
+  );
+  ref.onDispose(router.dispose);
+  ref.onDispose(refresh.dispose);
+  return router;
+});
 
 class AthleteOSApp extends ConsumerWidget {
   const AthleteOSApp({super.key});
@@ -13,10 +29,7 @@ class AthleteOSApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final locale = ref.watch(appLocaleControllerProvider);
-    final router = createAppRouter(
-      locale: locale,
-      onLocaleChanged: ref.read(appLocaleControllerProvider.notifier).setLocale,
-    );
+    final router = ref.watch(_routerProvider);
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,

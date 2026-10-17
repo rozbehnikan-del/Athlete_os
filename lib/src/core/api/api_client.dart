@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../errors/app_exception.dart';
+import '../auth/token_storage.dart';
 import 'api_config.dart';
 
 class ApiClient {
@@ -11,12 +12,26 @@ class ApiClient {
     required ApiConfig config,
     http.Client? httpClient,
     this.timeout = const Duration(seconds: 10),
+    this.tokenStorage,
+    this.onUnauthorized,
   }) : _config = config,
        _httpClient = httpClient ?? http.Client();
 
   final ApiConfig _config;
   final http.Client _httpClient;
   final Duration timeout;
+  final TokenStorage? tokenStorage;
+  final void Function()? onUnauthorized;
+
+  void close() => _httpClient.close();
+
+  Future<Map<String, String>> _requestHeaders() async {
+    final token = await tokenStorage?.readAccessToken();
+    return {
+      ..._headers,
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
 
   static const Map<String, String> _headers = {
     'Accept': 'application/json',
@@ -24,19 +39,25 @@ class ApiClient {
   };
 
   Future<Map<String, dynamic>> get(String path) async {
-    return _send(() => _httpClient.get(_uri(path), headers: _headers));
+    final headers = await _requestHeaders();
+    return _send(
+      () => _httpClient.get(_uri(path), headers: headers),
+      headers['Authorization'],
+    );
   }
 
   Future<Map<String, dynamic>> post(
     String path, {
     Map<String, dynamic>? body,
   }) async {
+    final headers = await _requestHeaders();
     return _send(
       () => _httpClient.post(
         _uri(path),
-        headers: _headers,
+        headers: headers,
         body: body == null ? null : jsonEncode(body),
       ),
+      headers['Authorization'],
     );
   }
 
@@ -47,6 +68,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> _send(
     Future<http.Response> Function() request,
+    String? authorization,
   ) async {
     http.Response response;
     try {
@@ -55,6 +77,16 @@ class ApiClient {
       throw const RepositoryException('Request timed out.');
     } on http.ClientException {
       throw const RepositoryException('Network request failed.');
+    }
+
+    if (response.statusCode == 401) {
+      // A late response from an old session must not clear a newer login.
+      final currentToken = await tokenStorage?.readAccessToken();
+      if (authorization != null && authorization == 'Bearer $currentToken') {
+        await tokenStorage?.deleteAccessToken();
+        onUnauthorized?.call();
+      }
+      throw const SessionExpiredException();
     }
 
     Map<String, dynamic> decoded;

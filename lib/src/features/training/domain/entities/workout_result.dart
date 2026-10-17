@@ -29,14 +29,12 @@ class SetResult {
 class WorkoutResult {
   const WorkoutResult({
     required this.workoutId,
-    required this.athleteId,
     required this.setResults,
     required this.completedAt,
     this.notes,
   });
 
   final String workoutId;
-  final String athleteId;
   final List<SetResult> setResults;
   final DateTime completedAt;
   final String? notes;

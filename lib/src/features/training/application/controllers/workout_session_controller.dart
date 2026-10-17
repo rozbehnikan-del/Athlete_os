@@ -151,10 +151,7 @@ class WorkoutSessionState {
     );
   }
 
-  WorkoutResult buildResult({
-    required String athleteId,
-    required DateTime completedAt,
-  }) {
+  WorkoutResult buildResult({required DateTime completedAt}) {
     final results = drafts.values
         .where((draft) => draft.completed)
         .map((draft) => draft.toResult())
@@ -166,7 +163,6 @@ class WorkoutSessionState {
     }
     return WorkoutResult(
       workoutId: workout.id,
-      athleteId: athleteId,
       setResults: results,
       completedAt: completedAt,
       notes: workoutNote.trim().isEmpty ? null : workoutNote.trim(),
@@ -186,10 +182,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
   Future<WorkoutSessionState> build() async {
     final workout = await ref
         .watch(workoutRepositoryProvider)
-        .getWorkoutById(
-          athleteId: WorkoutController.athleteId,
-          workoutId: workoutId,
-        );
+        .getWorkoutById(workoutId: workoutId);
     final drafts = <String, SetResultDraft>{};
     for (final exercise in workout.exercises) {
       for (final set in exercise.sets) {
@@ -318,10 +311,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
 
   Future<void> finishWorkout() async {
     final current = state.requireValue;
-    final result = current.buildResult(
-      athleteId: WorkoutController.athleteId,
-      completedAt: DateTime.now(),
-    );
+    final result = current.buildResult(completedAt: DateTime.now());
     state = AsyncData(current.copyWith(submitting: true));
     try {
       await ref.read(workoutRepositoryProvider).submitWorkoutResult(result);

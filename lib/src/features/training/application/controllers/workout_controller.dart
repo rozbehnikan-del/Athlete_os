@@ -9,17 +9,13 @@ final workoutControllerProvider =
     AsyncNotifierProvider<WorkoutController, Workout?>(WorkoutController.new);
 
 final workoutHistoryProvider = FutureProvider<List<WorkoutHistoryEntry>>(
-  (ref) => ref
-      .watch(workoutRepositoryProvider)
-      .getWorkoutHistory(WorkoutController.athleteId),
+  (ref) => ref.watch(workoutRepositoryProvider).getWorkoutHistory(),
 );
 
 class WorkoutController extends AsyncNotifier<Workout?> {
-  static const athleteId = 'athlete-ali';
-
   @override
   Future<Workout?> build() {
-    return ref.watch(workoutRepositoryProvider).getTodayWorkout(athleteId);
+    return ref.watch(workoutRepositoryProvider).getTodayWorkout();
   }
 
   Future<void> submitResult(WorkoutResult result) async {

@@ -1,16 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_client.dart';
-import '../../../core/api/api_config.dart';
+import '../../../core/api/api_providers.dart';
+import '../../auth/application/auth_controller.dart';
 import '../data/repositories/api_workout_repository.dart';
 import '../domain/repositories/workout_repository.dart';
 
-final apiConfigProvider = Provider<ApiConfig>((ref) => const ApiConfig());
+export '../../../core/api/api_providers.dart'
+    show apiClientProvider, apiConfigProvider;
 
-final apiClientProvider = Provider<ApiClient>(
-  (ref) => ApiClient(config: ref.watch(apiConfigProvider)),
-);
-
-final workoutRepositoryProvider = Provider<WorkoutRepository>(
-  (ref) => ApiWorkoutRepository(ref.watch(apiClientProvider)),
-);
+final workoutRepositoryProvider = Provider<WorkoutRepository>((ref) {
+  // Recreate Training state when the authenticated account changes.
+  ref.watch(authControllerProvider.select((auth) => auth.asData?.value?.id));
+  return ApiWorkoutRepository(ref.watch(apiClientProvider));
+});

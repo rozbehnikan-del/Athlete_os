@@ -18,13 +18,15 @@ import '../../../training/application/controllers/workout_controller.dart';
 import '../../../training/domain/entities/workout.dart';
 import '../../../training/domain/entities/exercise_prescription.dart';
 import '../../../training/presentation/training_formatters.dart';
+import '../../../auth/application/auth_controller.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
+    final user = ref.watch(authControllerProvider).asData?.value;
     final wide = windowClassOf(context) != WindowClass.compact;
     return PageShell(
       child: Column(
@@ -32,10 +34,11 @@ class HomeScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const AthleteAvatar(
-                label: 'A',
+              AthleteAvatar(
+                label: user == null || user.fullName.isEmpty
+                    ? ''
+                    : user.fullName.substring(0, 1),
                 size: 58,
-                imagePath: 'assets/images/athlete_ali_avatar.jpg',
                 showBorder: false,
               ),
               const SizedBox(width: 16),
@@ -52,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      l.ali,
+                      user?.fullName ?? '',
                       style: Theme.of(context).textTheme.headlineLarge
                           ?.copyWith(fontSize: 28, height: 1.05),
                     ),

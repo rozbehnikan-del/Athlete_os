@@ -1,5 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../core/auth/user_role.dart';
+import '../../features/auth/domain/entities/auth_user.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
 
 import '../../features/care_team/presentation/screens/care_team_screen.dart';
 import '../../features/competition/presentation/screens/competition_screen.dart';
@@ -15,10 +19,45 @@ import 'routes.dart';
 GoRouter createAppRouter({
   required Locale locale,
   required ValueChanged<Locale> onLocaleChanged,
+  required AsyncValue<AuthUser?> Function() authState,
+  required Listenable authRefresh,
 }) {
   return GoRouter(
     initialLocation: AppRoutes.home,
+    refreshListenable: authRefresh,
+    redirect: (context, state) {
+      final auth = authState();
+      final path = state.uri.path;
+      if (auth.isLoading) {
+        return path == '/login'
+            ? null
+            : path == '/auth-loading'
+            ? null
+            : '/auth-loading';
+      }
+      final user = auth.asData?.value;
+      if (auth.hasError && path == '/auth-loading') return null;
+      if (user == null) return path == '/login' ? null : '/login';
+      if (!user.isActive || user.role != UserRole.athlete) {
+        return path == '/unsupported-role' ? null : '/unsupported-role';
+      }
+      if (path == '/login' ||
+          path == '/auth-loading' ||
+          path == '/unsupported-role') {
+        return AppRoutes.home;
+      }
+      return null;
+    },
     routes: [
+      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/auth-loading',
+        builder: (context, state) => const AuthStatusScreen(),
+      ),
+      GoRoute(
+        path: '/unsupported-role',
+        builder: (context, state) => const AuthStatusScreen(unsupported: true),
+      ),
       GoRoute(
         path: AppRoutes.root,
         redirect: (context, state) => AppRoutes.home,

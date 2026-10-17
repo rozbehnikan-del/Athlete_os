@@ -288,6 +288,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.text("Let's get started"), findsOneWidget);
+      await tester.tap(find.text('Continue with Email'));
+      await tester.pumpAndSettle();
       expect(find.text('Sign In'), findsOneWidget);
       expect(
         tester

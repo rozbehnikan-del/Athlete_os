@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../core/auth/user_role.dart';
 import '../../features/auth/domain/entities/auth_user.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/auth_welcome_screen.dart';
 
 import '../../features/care_team/presentation/screens/care_team_screen.dart';
 import '../../features/competition/presentation/screens/competition_screen.dart';
@@ -28,8 +29,9 @@ GoRouter createAppRouter({
     redirect: (context, state) {
       final auth = authState();
       final path = state.uri.path;
+      final isLogin = path == '/login' || path == '/login/email';
       if (auth.isLoading) {
-        return path == '/login'
+        return isLogin
             ? null
             : path == '/auth-loading'
             ? null
@@ -37,19 +39,24 @@ GoRouter createAppRouter({
       }
       final user = auth.asData?.value;
       if (auth.hasError && path == '/auth-loading') return null;
-      if (user == null) return path == '/login' ? null : '/login';
+      if (user == null) return isLogin ? null : '/login';
       if (!user.isActive || user.role != UserRole.athlete) {
         return path == '/unsupported-role' ? null : '/unsupported-role';
       }
-      if (path == '/login' ||
-          path == '/auth-loading' ||
-          path == '/unsupported-role') {
+      if (isLogin || path == '/auth-loading' || path == '/unsupported-role') {
         return AppRoutes.home;
       }
       return null;
     },
     routes: [
-      GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+      GoRoute(
+        path: '/login',
+        builder: (context, state) => const AuthWelcomeScreen(),
+      ),
+      GoRoute(
+        path: '/login/email',
+        builder: (context, state) => const EmailLoginScreen(),
+      ),
       GoRoute(
         path: '/auth-loading',
         builder: (context, state) => const AuthStatusScreen(),

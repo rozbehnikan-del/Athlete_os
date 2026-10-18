@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:athlete_os/src/app/athlete_os_app.dart';
 import 'package:athlete_os/src/core/errors/app_exception.dart';
+import 'package:athlete_os/src/core/theme/app_theme.dart';
+import 'package:athlete_os/src/features/auth/presentation/screens/login_screen.dart';
 import 'package:athlete_os/src/features/auth/application/auth_controller.dart';
 import 'package:athlete_os/src/features/auth/domain/entities/auth_session.dart';
 import 'package:athlete_os/src/features/training/application/workout_providers.dart';
@@ -27,6 +29,58 @@ class PendingLoginRepository extends FakeAuthRepository {
 }
 
 void main() {
+  for (final theme in [AppTheme.light, AppTheme.dark]) {
+    testWidgets(
+      '${theme.brightness} sign-in loading spinner contrasts with button',
+      (tester) async {
+        final repository = PendingLoginRepository();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [authRepositoryProvider.overrideWithValue(repository)],
+            child: MaterialApp(theme: theme, home: const EmailLoginScreen()),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byType(TextFormField).first,
+          'ali@example.test',
+        );
+        await tester.enterText(
+          find.byType(TextFormField).last,
+          'test-password',
+        );
+        await tester.tap(find.text('Sign In'));
+        await tester.pump();
+
+        final spinnerFinder = find.byType(CircularProgressIndicator);
+        final spinner = tester.widget<CircularProgressIndicator>(spinnerFinder);
+        final button = tester.widget<FilledButton>(find.byType(FilledButton));
+        final scheme = Theme.of(tester.element(spinnerFinder)).colorScheme;
+        final background = button.style!.backgroundColor!.resolve({
+          WidgetState.disabled,
+        })!;
+        expect(button.onPressed, isNull);
+        expect(spinner.color, scheme.onPrimary);
+        expect(background, scheme.primary);
+        final foregroundLuminance = spinner.color!.computeLuminance();
+        final backgroundLuminance = background.computeLuminance();
+        final ratio =
+            (foregroundLuminance + 0.05) / (backgroundLuminance + 0.05);
+        expect(ratio >= 1 ? ratio : 1 / ratio, greaterThanOrEqualTo(4.5));
+
+        repository.result.complete(
+          const AuthSession(
+            accessToken: 'test-token',
+            tokenType: 'bearer',
+            expiresIn: 3600,
+            user: testAthlete,
+          ),
+        );
+        await tester.pumpAndSettle();
+      },
+    );
+  }
+
   Future<void> openAuth(
     WidgetTester tester,
     FakeAuthRepository repository,
@@ -120,7 +174,7 @@ void main() {
             .color,
         Theme.of(
           tester.element(find.byType(CircularProgressIndicator)),
-        ).colorScheme.primary,
+        ).colorScheme.onPrimary,
       );
       expect(find.text('Sign in to your account'), findsOneWidget);
       repository.result.complete(

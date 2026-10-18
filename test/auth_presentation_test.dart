@@ -112,6 +112,16 @@ void main() {
         isTrue,
       );
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(
+        tester
+            .widget<CircularProgressIndicator>(
+              find.byType(CircularProgressIndicator),
+            )
+            .color,
+        Theme.of(
+          tester.element(find.byType(CircularProgressIndicator)),
+        ).colorScheme.primary,
+      );
       expect(find.text('Sign in to your account'), findsOneWidget);
       repository.result.complete(
         const AuthSession(

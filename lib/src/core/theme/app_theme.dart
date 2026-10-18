@@ -37,7 +37,56 @@ class AppRadii {
 }
 
 class AppTheme {
-  static ThemeData get light {
+  static ThemeData get light => _build(Brightness.light);
+  static ThemeData get dark => _build(Brightness.dark);
+
+  static ThemeData _build(Brightness brightness) {
+    final dark = brightness == Brightness.dark;
+    final scheme = dark
+        ? const ColorScheme.dark(
+            primary: Color(0xFFE8EAEC),
+            primaryContainer: Color(0xFF343E46),
+            onPrimaryContainer: Color(0xFFF0F2F4),
+            secondaryContainer: Color(0xFF303A42),
+            onSecondaryContainer: Color(0xFFE1E7EC),
+            tertiary: Color(0xFFC0C8CF),
+            onTertiary: Color(0xFF20262B),
+            tertiaryContainer: Color(0xFF343E46),
+            onTertiaryContainer: Color(0xFFF0F2F4),
+            onPrimary: Color(0xFF141719),
+            secondary: Color(0xFFB3BCC5),
+            onSecondary: Color(0xFF20262B),
+            surface: Color(0xFF1C2227),
+            onSurface: Color(0xFFF0F2F4),
+            surfaceContainerHighest: Color(0xFF2A3239),
+            onSurfaceVariant: Color(0xFFB0BAC3),
+            outline: Color(0xFF77838E),
+            outlineVariant: Color(0xFF39434C),
+            error: Color(0xFFFFA6AD),
+            onError: Color(0xFF4C1720),
+          )
+        : const ColorScheme.light(
+            primary: Color(0xFF141719),
+            primaryContainer: Color(0xFFE2E7EB),
+            onPrimaryContainer: Color(0xFF182026),
+            secondaryContainer: Color(0xFFE9EDF0),
+            onSecondaryContainer: Color(0xFF263039),
+            tertiary: Color(0xFF58646E),
+            onTertiary: Colors.white,
+            tertiaryContainer: Color(0xFFE2E7EB),
+            onTertiaryContainer: Color(0xFF182026),
+            onPrimary: Colors.white,
+            secondary: Color(0xFF535E68),
+            onSecondary: Colors.white,
+            surface: Colors.white,
+            onSurface: AppColors.textDark,
+            surfaceContainerHighest: Color(0xFFE9EDF0),
+            onSurfaceVariant: Color(0xFF59656F),
+            outline: Color(0xFF78838C),
+            outlineVariant: AppColors.line,
+            error: Color(0xFFB83242),
+            onError: Colors.white,
+          );
     const base = TextTheme(
       displayLarge: TextStyle(
         fontSize: 42,
@@ -108,21 +157,51 @@ class AppTheme {
     );
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: AppColors.background,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primaryGreen,
-        brightness: Brightness.light,
-        primary: AppColors.primaryGreen,
-        surface: AppColors.surface,
-      ),
+      brightness: brightness,
+      scaffoldBackgroundColor: dark
+          ? const Color(0xFF12171B)
+          : AppColors.background,
+      colorScheme: scheme,
       textTheme: base.apply(
-        bodyColor: AppColors.textDark,
-        displayColor: AppColors.textDark,
+        bodyColor: scheme.onSurface,
+        displayColor: scheme.onSurface,
       ),
       fontFamily: 'Arial',
-      navigationBarTheme: const NavigationBarThemeData(
-        indicatorColor: Color(0xFFE7FBEF),
-        backgroundColor: AppColors.surface,
+      dividerColor: scheme.outlineVariant,
+      progressIndicatorTheme: ProgressIndicatorThemeData(color: scheme.primary),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: scheme.primary,
+        selectionColor: scheme.primary.withValues(alpha: 0.2),
+        selectionHandleColor: scheme.primary,
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: scheme.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: scheme.outlineVariant),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
+        ),
+        floatingLabelStyle: TextStyle(color: scheme.primary),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        indicatorColor: scheme.surfaceContainerHighest,
+        backgroundColor: scheme.surface,
+      ),
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: scheme.surface,
+        indicatorColor: scheme.surfaceContainerHighest,
+        selectedIconTheme: IconThemeData(color: scheme.onSurface),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: TextStyle(color: scheme.onSurface),
+        unselectedLabelTextStyle: TextStyle(color: scheme.onSurfaceVariant),
       ),
     );
   }

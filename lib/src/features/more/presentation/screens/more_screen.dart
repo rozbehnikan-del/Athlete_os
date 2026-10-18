@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../auth/application/auth_controller.dart';
+import '../../../../app/application/app_theme_controller.dart';
 
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../app/router/routes.dart';
@@ -46,7 +47,7 @@ class MoreScreen extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(AppRadii.md),
                 ),
-                tileColor: Colors.white,
+                tileColor: Theme.of(context).colorScheme.surface,
                 leading: Icon(item.$2),
                 title: Text(
                   item.$1,
@@ -57,6 +58,39 @@ class MoreScreen extends ConsumerWidget {
               ),
             ),
           const SizedBox(height: 12),
+          SectionHeader(title: 'Appearance'),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<ThemeMode>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: ThemeMode.system,
+                  icon: Icon(Icons.brightness_auto_outlined),
+                  label: Text('System'),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.light,
+                  icon: Icon(Icons.light_mode_outlined),
+                  label: Text('Light'),
+                ),
+                ButtonSegment(
+                  value: ThemeMode.dark,
+                  icon: Icon(Icons.dark_mode_outlined),
+                  label: Text('Dark'),
+                ),
+              ],
+              selected: {
+                ref.watch(appThemeControllerProvider).asData?.value ??
+                    ThemeMode.system,
+              },
+              onSelectionChanged: (selection) => ref
+                  .read(appThemeControllerProvider.notifier)
+                  .setThemeMode(selection.single),
+            ),
+          ),
+          const SizedBox(height: 24),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Sign Out'),
@@ -64,7 +98,7 @@ class MoreScreen extends ConsumerWidget {
           ),
           Container(
             padding: const EdgeInsets.all(18),
-            decoration: lightBoxDecoration(),
+            decoration: lightBoxDecoration(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

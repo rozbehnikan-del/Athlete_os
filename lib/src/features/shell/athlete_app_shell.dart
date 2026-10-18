@@ -51,20 +51,22 @@ class _AthleteAppShellState extends ConsumerState<AthleteAppShell> {
     if (size == WindowClass.compact) {
       final dark = destinations[index].dark;
       return Scaffold(
-        backgroundColor: dark ? AppColors.brandBlack : AppColors.background,
+        backgroundColor: dark
+            ? AppTheme.dark.scaffoldBackgroundColor
+            : Theme.of(context).scaffoldBackgroundColor,
         body: widget.navigationShell,
         bottomNavigationBar: NavigationBar(
           selectedIndex: index,
-          backgroundColor: dark ? AppColors.brandBlack : Colors.white,
-          indicatorColor: dark ? Colors.white10 : const Color(0xFFE7FBEF),
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          indicatorColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           elevation: 0,
           height: 68,
           labelTextStyle: WidgetStateProperty.resolveWith((states) {
             final selected = states.contains(WidgetState.selected);
             return TextStyle(
               color: selected
-                  ? (dark ? Colors.white : AppColors.textDark)
-                  : (dark ? Colors.white54 : AppColors.textMuted),
+                  ? Theme.of(context).colorScheme.onSurface
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
               fontSize: 11,
               fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
             );
@@ -79,7 +81,7 @@ class _AthleteAppShellState extends ConsumerState<AthleteAppShell> {
       body: Row(
         children: [
           NavigationRail(
-            backgroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.surface,
             selectedIndex: index,
             extended: size == WindowClass.expanded,
             minExtendedWidth: 220,
@@ -99,7 +101,10 @@ class _AthleteAppShellState extends ConsumerState<AthleteAppShell> {
                 ),
             ],
           ),
-          const VerticalDivider(width: 1, color: AppColors.line),
+          VerticalDivider(
+            width: 1,
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
           Expanded(child: widget.navigationShell),
         ],
       ),

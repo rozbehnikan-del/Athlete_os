@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
-
 class TabSelector extends StatelessWidget {
   const TabSelector({
     super.key,
@@ -31,17 +29,29 @@ class TabSelector extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: i == selected
-                  ? (dark ? Colors.white : AppColors.brandBlack)
-                  : (dark ? Colors.white10 : Colors.white),
+                  ? (dark
+                        ? Colors.white
+                        : Theme.of(context).colorScheme.primary)
+                  : (dark
+                        ? Colors.white10
+                        : Theme.of(context).colorScheme.surface),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: dark ? Colors.white12 : AppColors.line),
+              border: Border.all(
+                color: dark
+                    ? Colors.white12
+                    : Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
             child: Text(
               labels[i],
               style: TextStyle(
                 color: i == selected
-                    ? (dark ? AppColors.brandBlack : Colors.white)
-                    : (dark ? Colors.white70 : AppColors.textMuted),
+                    ? (dark
+                          ? const Color(0xFF141719)
+                          : Theme.of(context).colorScheme.onPrimary)
+                    : (dark
+                          ? Colors.white70
+                          : Theme.of(context).colorScheme.onSurfaceVariant),
                 fontWeight: FontWeight.w800,
               ),
             ),

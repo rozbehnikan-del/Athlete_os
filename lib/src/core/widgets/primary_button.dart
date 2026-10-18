@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
-
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({
     super.key,
@@ -21,8 +19,8 @@ class PrimaryButton extends StatelessWidget {
       icon: Icon(icon ?? Icons.arrow_forward_rounded, size: 18),
       label: Text(label),
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.primaryGreen,
-        foregroundColor: AppColors.brandBlack,
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         minimumSize: const Size(0, 58),
         textStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
           fontSize: 16,

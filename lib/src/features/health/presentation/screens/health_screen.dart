@@ -65,7 +65,7 @@ class HealthScreen extends StatelessWidget {
           const SizedBox(height: 18),
           Container(
             padding: const EdgeInsets.all(18),
-            decoration: lightBoxDecoration(),
+            decoration: lightBoxDecoration(context),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

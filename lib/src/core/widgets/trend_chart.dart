@@ -13,7 +13,10 @@ class TrendChart extends StatelessWidget {
     return SizedBox(
       height: 170,
       child: CustomPaint(
-        painter: _TrendPainter(points, dark),
+        painter: _TrendPainter(
+          points,
+          dark ? Colors.white10 : Theme.of(context).colorScheme.outlineVariant,
+        ),
         size: Size.infinite,
       ),
     );
@@ -21,15 +24,15 @@ class TrendChart extends StatelessWidget {
 }
 
 class _TrendPainter extends CustomPainter {
-  _TrendPainter(this.points, this.dark);
+  _TrendPainter(this.points, this.gridColor);
 
   final List<double> points;
-  final bool dark;
+  final Color gridColor;
 
   @override
   void paint(Canvas canvas, Size size) {
     final grid = Paint()
-      ..color = dark ? Colors.white10 : AppColors.line
+      ..color = gridColor
       ..strokeWidth = 1;
     for (var i = 1; i < 4; i++) {
       final y = size.height * i / 4;
@@ -64,5 +67,5 @@ class _TrendPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _TrendPainter oldDelegate) =>
-      oldDelegate.points != points;
+      oldDelegate.points != points || oldDelegate.gridColor != gridColor;
 }

@@ -48,8 +48,8 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     Text(
                       l.goodMorning,
-                      style: const TextStyle(
-                        color: Color(0xFF6F7A84),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -124,15 +124,21 @@ class _DateSelector extends StatelessWidget {
           width: 52,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: i == 2 ? AppColors.brandBlack : Colors.white,
+            color: i == 2
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(AppRadii.md),
-            border: Border.all(color: AppColors.line),
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
           ),
           child: Text(
             days[i],
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: i == 2 ? Colors.white : AppColors.textDark,
+              color: i == 2
+                  ? Theme.of(context).colorScheme.onPrimary
+                  : Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -152,19 +158,19 @@ class _TodayWorkoutCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.xl),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: workout.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stackTrace) =>
             Text('$error', style: const TextStyle(color: AppColors.red)),
         data: (workout) => workout == null
-            ? const Text(
+            ? Text(
                 'No active workout today',
                 style: TextStyle(
-                  color: AppColors.textMuted,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                   fontWeight: FontWeight.w700,
                 ),
               )
@@ -184,8 +190,10 @@ class _TodayWorkoutCard extends ConsumerWidget {
                             if (_workoutMetadata(workout).isNotEmpty)
                               Text(
                                 _workoutMetadata(workout),
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
+                                style: TextStyle(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
@@ -279,15 +287,15 @@ class _ExerciseLine extends StatelessWidget {
               children: [
                 Text(
                   exercise.name,
-                  style: const TextStyle(
-                    color: AppColors.textDark,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
                 Text(
                   exercisePrescriptionDetail(exercise),
-                  style: const TextStyle(
-                    color: AppColors.textMuted,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w600,
                     fontSize: 12,
                   ),
@@ -299,7 +307,9 @@ class _ExerciseLine extends StatelessWidget {
             complete
                 ? Icons.check_circle_rounded
                 : Icons.radio_button_unchecked_rounded,
-            color: complete ? AppColors.primaryGreen : AppColors.textMuted,
+            color: complete
+                ? AppColors.primaryGreen
+                : Theme.of(context).colorScheme.onSurfaceVariant,
             size: 22,
           ),
         ],
@@ -317,9 +327,9 @@ class _ReadinessCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(AppRadii.xl),
-        border: Border.all(color: AppColors.line),
+        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

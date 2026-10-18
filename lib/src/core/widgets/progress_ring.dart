@@ -22,12 +22,17 @@ class ProgressRing extends StatelessWidget {
       width: size,
       height: size,
       child: CustomPaint(
-        painter: _RingPainter(value, dark),
+        painter: _RingPainter(
+          value,
+          dark ? Colors.white12 : Theme.of(context).colorScheme.outlineVariant,
+        ),
         child: Center(
           child: Text(
             '${(value * 100).round()}%',
             style: TextStyle(
-              color: dark ? Colors.white : AppColors.textDark,
+              color: dark
+                  ? Colors.white
+                  : Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -38,10 +43,10 @@ class ProgressRing extends StatelessWidget {
 }
 
 class _RingPainter extends CustomPainter {
-  _RingPainter(this.value, this.dark);
+  _RingPainter(this.value, this.trackColor);
 
   final double value;
-  final bool dark;
+  final Color trackColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -50,7 +55,7 @@ class _RingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8
       ..strokeCap = StrokeCap.round
-      ..color = dark ? Colors.white12 : AppColors.line;
+      ..color = trackColor;
     final active = Paint()
       ..style = PaintingStyle.stroke
       ..strokeWidth = 8
@@ -68,5 +73,5 @@ class _RingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _RingPainter oldDelegate) =>
-      oldDelegate.value != value;
+      oldDelegate.value != value || oldDelegate.trackColor != trackColor;
 }

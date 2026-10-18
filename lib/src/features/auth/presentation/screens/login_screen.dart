@@ -131,12 +131,12 @@ class _EmailLoginScreenState extends ConsumerState<EmailLoginScreen> {
               FilledButton(
                 onPressed: auth.isLoading ? null : _submit,
                 child: auth.isLoading
-                    ? const SizedBox(
+                    ? SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Color(0xFF20E57A),
+                          color: Theme.of(context).colorScheme.primary,
                           semanticsLabel: 'Signing in',
                         ),
                       )

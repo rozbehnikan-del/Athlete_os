@@ -12,17 +12,21 @@ class PageShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = windowClassOf(context);
-    return ColoredBox(
-      color: dark ? AppColors.brandBlack : AppColors.background,
-      child: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: maxContentWidth(size)),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(
-                size == WindowClass.compact ? AppSpacing.x4 : AppSpacing.x8,
+    final theme = dark ? AppTheme.dark : Theme.of(context);
+    return Theme(
+      data: theme,
+      child: ColoredBox(
+        color: theme.scaffoldBackgroundColor,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: maxContentWidth(size)),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.all(
+                  size == WindowClass.compact ? AppSpacing.x4 : AppSpacing.x8,
+                ),
+                child: child,
               ),
-              child: child,
             ),
           ),
         ),

@@ -7,15 +7,16 @@ class AuthLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     final border = OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: Color(0xFFE1E4E7)),
+      borderSide: BorderSide(color: scheme.outlineVariant),
     );
     return Theme(
       data: Theme.of(context).copyWith(
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: Colors.white,
+          fillColor: scheme.surface,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 18,
             vertical: 18,
@@ -23,7 +24,7 @@ class AuthLayout extends StatelessWidget {
           border: border,
           enabledBorder: border,
           focusedBorder: border.copyWith(
-            borderSide: const BorderSide(color: Color(0xFF17834B), width: 2),
+            borderSide: BorderSide(color: scheme.primary, width: 2),
           ),
           errorBorder: border.copyWith(
             borderSide: BorderSide(color: Theme.of(context).colorScheme.error),
@@ -37,10 +38,10 @@ class AuthLayout extends StatelessWidget {
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF141719),
-            foregroundColor: Colors.white,
-            disabledBackgroundColor: const Color(0xFF45494C),
-            disabledForegroundColor: Colors.white,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
+            disabledBackgroundColor: scheme.onSurface.withValues(alpha: 0.12),
+            disabledForegroundColor: scheme.onSurfaceVariant,
             minimumSize: const Size(double.infinity, 54),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
             textStyle: const TextStyle(
@@ -55,7 +56,7 @@ class AuthLayout extends StatelessWidget {
         ),
       ),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         body: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -97,22 +98,22 @@ class AuthHeading extends StatelessWidget {
         width: 50,
         height: 50,
         decoration: BoxDecoration(
-          color: const Color(0xFF141719),
+          color: Theme.of(context).colorScheme.primary,
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.fitness_center_rounded,
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.onPrimary,
           size: 25,
         ),
       ),
       const SizedBox(height: 16),
-      const Text(
+      Text(
         'AthleteOS',
         style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.w700,
-          color: Color(0xFF586168),
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
       const SizedBox(height: 28),
@@ -121,11 +122,11 @@ class AuthHeading extends StatelessWidget {
         child: Text(
           title,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 28,
             height: 1.2,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF141719),
+            color: Theme.of(context).colorScheme.onSurface,
             letterSpacing: 0,
           ),
         ),

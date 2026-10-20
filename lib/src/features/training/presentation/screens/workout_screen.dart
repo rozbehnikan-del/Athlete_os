@@ -100,7 +100,7 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '${state.workout.category}  -  ${state.workout.focus}',
+                workoutMetadata(state.workout),
                 style: const TextStyle(
                   color: Colors.white60,
                   fontWeight: FontWeight.w700,
@@ -269,7 +269,9 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                                     workoutId,
                                   ).notifier,
                                 )
-                                .updateRpe(rpe.toDouble()),
+                                .updateRpe(
+                                  draft.rpe == rpe ? null : rpe.toDouble(),
+                                ),
                           ),
                       ],
                     ),
@@ -325,6 +327,16 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
                   ),
                 ],
               ),
+              if (state.completedSets > 0)
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: OutlinedButton(
+                    onPressed: state.submitting || state.finished
+                        ? null
+                        : () => _showFinishSheet(context, workoutId, state),
+                    child: const Text('Review and finish'),
+                  ),
+                ),
             ],
           );
         },
@@ -394,53 +406,90 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
   ) {
     final l = AppLocalizations.of(context)!;
     final averageRpe = _averageRpe(state);
+    var saving = false;
+    String? saveError;
     return showModalBottomSheet<void>(
       context: context,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: AppColors.darkSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
       ),
-      builder: (context) => Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              l.workoutComplete,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineSmall?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${state.completedSets} ${l.setsCompleted}${averageRpe == null ? '' : '  -  ${l.averageRpe}: ${averageRpe.toStringAsFixed(1)}'}',
-              style: const TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.w700,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) => Padding(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                l.workoutComplete,
+                style: Theme.of(
+                  context,
+                ).textTheme.headlineSmall?.copyWith(color: Colors.white),
               ),
-            ),
-            const SizedBox(height: 18),
-            PrimaryButton(
-              label: l.finishWorkout,
-              icon: Icons.flag_rounded,
-              onPressed: () async {
-                await ref
-                    .read(workoutSessionControllerProvider(workoutId).notifier)
-                    .finishWorkout();
-                if (context.mounted) {
-                  Navigator.of(context).pop();
-                  context.go('${AppRoutes.training}?tab=history');
-                }
-              },
-            ),
-            const SizedBox(height: 10),
-            SecondaryButton(
-              label: l.continueEditing,
-              dark: true,
-              onPressed: () => Navigator.of(context).pop(),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                '${state.completedSets} ${l.setsCompleted}${averageRpe == null ? '' : '  -  ${l.averageRpe}: ${averageRpe.toStringAsFixed(1)}'}',
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 18),
+              if (saveError != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    saveError!,
+                    style: const TextStyle(color: Colors.white),
+                  ),
+                ),
+              PrimaryButton(
+                label: saving ? 'Saving…' : l.finishWorkout,
+                icon: Icons.flag_rounded,
+                onPressed: saving
+                    ? null
+                    : () async {
+                        setSheetState(() {
+                          saving = true;
+                          saveError = null;
+                        });
+                        try {
+                          final saved = await ref
+                              .read(
+                                workoutSessionControllerProvider(
+                                  workoutId,
+                                ).notifier,
+                              )
+                              .finishWorkout();
+                          if (saved && context.mounted) {
+                            Navigator.of(context).pop();
+                            context.go('${AppRoutes.training}?tab=history');
+                          }
+                        } catch (_) {
+                          if (context.mounted) {
+                            setSheetState(
+                              () => saveError =
+                                  'Could not save workout. Your entries are preserved. Please try again.',
+                            );
+                          }
+                        } finally {
+                          if (context.mounted) {
+                            setSheetState(() => saving = false);
+                          }
+                        }
+                      },
+              ),
+              const SizedBox(height: 10),
+              SecondaryButton(
+                label: l.continueEditing,
+                dark: true,
+                onPressed: saving ? null : () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -527,7 +576,7 @@ class _TrainingTodayView extends ConsumerWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${workout.category}  -  ${workout.focus}',
+                    workoutMetadata(workout),
                     style: const TextStyle(
                       color: Colors.white60,
                       fontWeight: FontWeight.w700,
@@ -625,9 +674,7 @@ class _WorkoutHistoryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context)!;
-    final completedSets = result.setResults
-        .where((set) => set.completed)
-        .length;
+    final completedSets = result.completedSets;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
@@ -635,7 +682,11 @@ class _WorkoutHistoryCard extends StatelessWidget {
         decoration: darkBoxDecoration(),
         child: Row(
           children: [
-            const ProgressRing(value: 1, size: 54, dark: true),
+            ProgressRing(
+              value: (result.completion.percentage ?? 0) / 100,
+              size: 54,
+              dark: true,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -655,6 +706,10 @@ class _WorkoutHistoryCard extends StatelessWidget {
                       color: Colors.white60,
                       fontWeight: FontWeight.w700,
                     ),
+                  ),
+                  Text(
+                    result.completion.label,
+                    style: const TextStyle(color: Colors.white70),
                   ),
                   if (result.notes != null)
                     Text(

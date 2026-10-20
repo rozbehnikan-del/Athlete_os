@@ -44,7 +44,8 @@ class SetResultDraft {
   int? get actualReps => int.tryParse(repsInput);
   double? get actualWeight => double.tryParse(weightInput);
   bool get hasValidReps => actualReps != null && actualReps! >= 0;
-  bool get hasValidWeight => actualWeight != null && actualWeight! >= 0;
+  bool get hasValidWeight =>
+      actualWeight != null && actualWeight!.isFinite && actualWeight! >= 0;
   bool get hasWeightUnit => weightUnit != null;
   bool get hasValidRpe => rpe == null || (rpe! >= 1 && rpe! <= 10);
   bool get isValid =>
@@ -309,8 +310,9 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
     }
   }
 
-  Future<void> finishWorkout() async {
+  Future<bool> finishWorkout() async {
     final current = state.requireValue;
+    if (current.submitting || current.finished) return false;
     final result = current.buildResult(completedAt: DateTime.now());
     state = AsyncData(current.copyWith(submitting: true));
     try {
@@ -318,6 +320,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
       ref.invalidate(workoutHistoryProvider);
       ref.invalidate(workoutControllerProvider);
       state = AsyncData(current.copyWith(submitting: false, finished: true));
+      return true;
     } catch (_) {
       final failedState = state.requireValue;
       state = AsyncData(

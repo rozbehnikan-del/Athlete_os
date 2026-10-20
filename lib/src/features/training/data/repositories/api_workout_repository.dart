@@ -49,10 +49,23 @@ class ApiWorkoutRepository implements WorkoutRepository {
 
   @override
   Future<List<WorkoutHistoryEntry>> getWorkoutHistory() async {
-    final json = await _apiClient.get(
-      '/v1/athletes/me/workout-history?page=1&per_page=20',
-    );
-    return _historyFromEnvelope(json);
+    final entries = <WorkoutHistoryEntry>[];
+    var page = 1;
+    while (true) {
+      final json = await _apiClient.get(
+        '/v1/athletes/me/workout-history?page=$page&per_page=20',
+      );
+      final batch = _historyFromEnvelope(json);
+      entries.addAll(batch);
+      final meta = json['meta'];
+      if (meta is! Map ||
+          batch.isEmpty ||
+          entries.length >= (meta['total'] as int)) {
+        break;
+      }
+      page++;
+    }
+    return entries;
   }
 
   Workout _workoutFromEnvelope(Map<String, dynamic> json) {
@@ -153,6 +166,8 @@ class ApiWorkoutRepository implements WorkoutRepository {
       completedAt: _readDateTime(value, 'completed_at'),
       setResults: sets.map(_historySetFromJson).toList(growable: false),
       notes: _readOptionalString(value, 'notes'),
+      prescribedSets: _readInt(value, 'total_sets'),
+      recordedCompletedSets: _readInt(value, 'completed_sets'),
     );
   }
 

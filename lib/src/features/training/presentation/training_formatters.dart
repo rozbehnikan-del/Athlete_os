@@ -1,5 +1,14 @@
 import '../domain/entities/exercise_prescription.dart';
 import '../domain/entities/exercise_set.dart';
+import '../domain/entities/workout.dart';
+
+String workoutMetadata(Workout workout) {
+  final category = workout.category.trim();
+  final focus = workout.focus.trim();
+  if (category.isEmpty) return focus;
+  if (focus.isEmpty) return category;
+  return '$category ($focus)';
+}
 
 String exerciseImagePath(String slug) => switch (slug) {
   'back-squat' => 'assets/images/exercises/back_squat.jpg',

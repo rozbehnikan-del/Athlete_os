@@ -1,3 +1,4 @@
+import '../../features/coach/presentation/coach_screens.dart';
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,15 +41,29 @@ GoRouter createAppRouter({
       final user = auth.asData?.value;
       if (auth.hasError && path == '/auth-loading') return null;
       if (user == null) return isLogin ? null : '/login';
-      if (!user.isActive || user.role != UserRole.athlete) {
+      if (!user.isActive ||
+          (user.role != UserRole.athlete && user.role != UserRole.coach)) {
         return path == '/unsupported-role' ? null : '/unsupported-role';
       }
+      if (user.role == UserRole.coach) {
+        return path == '/coach' || path.startsWith('/coach/') ? null : '/coach';
+      }
+      if (path == '/coach' || path.startsWith('/coach/')) return AppRoutes.home;
       if (isLogin || path == '/auth-loading' || path == '/unsupported-role') {
         return AppRoutes.home;
       }
       return null;
     },
     routes: [
+      GoRoute(
+        path: '/coach',
+        builder: (context, state) => const CoachHomeScreen(),
+      ),
+      GoRoute(
+        path: '/coach/athletes/:id',
+        builder: (context, state) =>
+            CoachAthleteScreen(athleteId: state.pathParameters['id']!),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const AuthWelcomeScreen(),

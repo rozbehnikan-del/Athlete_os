@@ -89,7 +89,10 @@ void main() {
     await tester.tap(find.byIcon(Icons.show_chart_rounded).hitTestable());
     await tester.pumpAndSettle();
 
-    expect(find.text('Back Squat').hitTestable(), findsOneWidget);
+    expect(
+      find.text('Complete your first workout to see your progress.'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Start Workout navigates to workout session', (tester) async {
@@ -103,7 +106,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Coach target').hitTestable(), findsOneWidget);
-    expect(find.text('Back Squat').hitTestable(), findsOneWidget);
+    expect(
+      find.text('Back Squat').hitTestable(),
+      findsOneWidget,
+    );
   });
 
   testWidgets('Completing and editing a set updates UI', (tester) async {

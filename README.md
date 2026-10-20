@@ -1,6 +1,10 @@
 # athlete_os
 
-A new Flutter project.
+A coach-first Flutter app with JWT authentication, workout assignment and execution,
+persisted results, history-derived progress and prescription completion grades.
+
+See [MVP verification and local commands](docs/MVP_VERIFICATION.md) for the current
+implementation, exact test results, real PostgreSQL verification and remaining limits.
 
 ## Getting Started
 

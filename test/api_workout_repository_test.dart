@@ -248,6 +248,26 @@ void main() {
       expect(secondSet.rpe, isNull);
     });
 
+    test(
+      'history loads every page and keeps prescribed denominator for partial sessions',
+      () async {
+        var calls = 0;
+        final repository = repositoryFor((request) async {
+          calls++;
+          expect(request.url.queryParameters['page'], '$calls');
+          final envelope = historyEnvelope();
+          envelope['meta'] = {'page': calls, 'per_page': 20, 'total': 2};
+          return jsonResponse(envelope);
+        });
+        final history = await repository.getWorkoutHistory();
+        expect(calls, 2);
+        expect(history.length, 2);
+        expect(history.first.completedSets, 1);
+        expect(history.first.totalSets, 2);
+        expect(history.first.completion.grade, 'C');
+      },
+    );
+
     test('history newest-first order remains unchanged', () async {
       final repository = repositoryFor(
         (_) async => jsonResponse(historyEnvelope(includeOlder: true)),

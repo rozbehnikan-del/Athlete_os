@@ -3,16 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../l10n/app_localizations.dart';
-import '../../../../core/responsive/responsive.dart';
+
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/athlete_avatar.dart';
-import '../../../../core/widgets/metric_card.dart';
+
 import '../../../../core/widgets/page_shell.dart';
 import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/progress_ring.dart';
-import '../../../../core/widgets/responsive_grid.dart';
-import '../../../../core/widgets/section_header.dart';
-import '../../../../core/widgets/status_badge.dart';
+
 import '../../../../app/router/routes.dart';
 import '../../../training/application/controllers/workout_controller.dart';
 import '../../../training/domain/entities/workout.dart';
@@ -27,7 +24,7 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
     final user = ref.watch(authControllerProvider).asData?.value;
-    final wide = windowClassOf(context) != WindowClass.compact;
+
     return PageShell(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -73,28 +70,6 @@ class HomeScreen extends ConsumerWidget {
           const SizedBox(height: 18),
           const _TodayWorkoutCard(),
           const SizedBox(height: 26),
-          ResponsiveGrid(
-            columns: wide ? 3 : 3,
-            children: [
-              MetricCard(
-                title: l.nutrition,
-                value: '1,850 kcal',
-                icon: Icons.local_fire_department_rounded,
-              ),
-              MetricCard(
-                title: l.weight,
-                value: '78.5 kg',
-                delta: '-2.1 kg',
-                icon: Icons.monitor_weight_rounded,
-              ),
-              MetricCard(
-                title: l.sleep,
-                value: '7h 12m',
-                icon: Icons.bedtime_rounded,
-              ),
-            ],
-          ),
-          if (wide) ...[const SizedBox(height: 18), const _ReadinessCard()],
         ],
       ),
     );
@@ -106,14 +81,16 @@ class _DateSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final days = [
-      'Mon\n13',
-      'Tue\n14',
-      'Wed\n15',
-      'Thu\n16',
-      'Fri\n17',
-      'Sat\n18',
-    ];
+    final now = DateTime.now();
+    final monday = DateTime(
+      now.year,
+      now.month,
+      now.day,
+    ).subtract(Duration(days: now.weekday - 1));
+    final days = List.generate(7, (i) {
+      final date = monday.add(Duration(days: i));
+      return MaterialLocalizations.of(context).formatShortDate(date);
+    });
     return SizedBox(
       height: 62,
       child: ListView.separated(
@@ -124,7 +101,7 @@ class _DateSelector extends StatelessWidget {
           width: 52,
           alignment: Alignment.center,
           decoration: BoxDecoration(
-            color: i == 2
+            color: i == now.weekday - 1
                 ? Theme.of(context).colorScheme.primary
                 : Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(AppRadii.md),
@@ -136,7 +113,7 @@ class _DateSelector extends StatelessWidget {
             days[i],
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: i == 2
+              color: i == now.weekday - 1
                   ? Theme.of(context).colorScheme.onPrimary
                   : Theme.of(context).colorScheme.onSurface,
               fontWeight: FontWeight.w800,
@@ -187,6 +164,11 @@ class _TodayWorkoutCard extends ConsumerWidget {
                               l.todaysWorkout,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
+                            if (workout.title != l.todaysWorkout)
+                              Text(
+                                workout.title,
+                                style: Theme.of(context).textTheme.titleMedium,
+                              ),
                             if (_workoutMetadata(workout).isNotEmpty)
                               Text(
                                 _workoutMetadata(workout),
@@ -217,15 +199,10 @@ class _TodayWorkoutCard extends ConsumerWidget {
                         child: Column(
                           children: [
                             for (var i = 0; i < workout.exercises.length; i++)
-                              _ExerciseLine(
-                                exercise: workout.exercises[i],
-                                complete: i == 0,
-                              ),
+                              _ExerciseLine(exercise: workout.exercises[i]),
                           ],
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const ProgressRing(value: .75, size: 58),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -258,10 +235,9 @@ String _workoutMetadata(Workout workout) {
 }
 
 class _ExerciseLine extends StatelessWidget {
-  const _ExerciseLine({required this.exercise, this.complete = false});
+  const _ExerciseLine({required this.exercise});
 
   final ExercisePrescription exercise;
-  final bool complete;
 
   @override
   Widget build(BuildContext context) {
@@ -303,57 +279,6 @@ class _ExerciseLine extends StatelessWidget {
               ],
             ),
           ),
-          Icon(
-            complete
-                ? Icons.check_circle_rounded
-                : Icons.radio_button_unchecked_rounded,
-            color: complete
-                ? AppColors.primaryGreen
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-            size: 22,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ReadinessCard extends StatelessWidget {
-  const _ReadinessCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context)!;
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadii.xl),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SectionHeader(
-            title: l.readiness,
-            trailing: const ProgressRing(value: .82),
-          ),
-          const SizedBox(height: 18),
-          for (final item in ['Sleep', 'Energy', 'Soreness', 'Stress', 'Pain'])
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const StatusBadge(label: 'Good'),
-                ],
-              ),
-            ),
         ],
       ),
     );

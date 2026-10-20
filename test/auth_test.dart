@@ -1,3 +1,4 @@
+import 'package:athlete_os/src/features/coach/application/coach_providers.dart';
 import 'dart:convert';
 
 import 'package:athlete_os/src/core/api/api_client.dart';
@@ -250,6 +251,7 @@ void main() {
                 ),
               ),
             ),
+            coachRosterProvider.overrideWith((ref) async => []),
             workoutRepositoryProvider.overrideWith(
               (ref) => MockWorkoutRepository(),
             ),
@@ -265,10 +267,7 @@ void main() {
         expect(find.text("Today's Workout"), findsOneWidget);
         expect(find.text('User'), findsOneWidget);
       } else {
-        expect(
-          find.text('coach experience is not available yet.'),
-          findsOneWidget,
-        );
+        expect(find.text('Coach Home'), findsOneWidget);
         expect(find.text("Today's Workout"), findsNothing);
       }
     });

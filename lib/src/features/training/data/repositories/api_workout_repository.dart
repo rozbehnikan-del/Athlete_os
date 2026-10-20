@@ -48,24 +48,14 @@ class ApiWorkoutRepository implements WorkoutRepository {
   }
 
   @override
-  Future<List<WorkoutHistoryEntry>> getWorkoutHistory() async {
-    final entries = <WorkoutHistoryEntry>[];
-    var page = 1;
-    while (true) {
-      final json = await _apiClient.get(
-        '/v1/athletes/me/workout-history?page=$page&per_page=20',
-      );
-      final batch = _historyFromEnvelope(json);
-      entries.addAll(batch);
-      final meta = json['meta'];
-      if (meta is! Map ||
-          batch.isEmpty ||
-          entries.length >= (meta['total'] as int)) {
-        break;
-      }
-      page++;
-    }
-    return entries;
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory({
+    int page = 1,
+    int perPage = 20,
+  }) async {
+    final json = await _apiClient.get(
+      '/v1/athletes/me/workout-history?page=$page&per_page=$perPage',
+    );
+    return _historyFromEnvelope(json);
   }
 
   Workout _workoutFromEnvelope(Map<String, dynamic> json) {

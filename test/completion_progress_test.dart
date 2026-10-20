@@ -7,6 +7,8 @@ import 'package:athlete_os/src/features/training/application/controllers/workout
 import 'package:athlete_os/src/features/training/domain/entities/completion_grade.dart';
 import 'package:athlete_os/src/features/training/domain/entities/workout_history_entry.dart';
 import 'package:athlete_os/src/features/progress/domain/progress_metrics.dart';
+import 'package:athlete_os/src/features/progress/domain/progress_summary.dart';
+import 'package:athlete_os/src/features/progress/application/progress_providers.dart';
 import 'helpers/fake_auth_repository.dart';
 
 WorkoutHistoryEntry entry(int completed, int total, {int day = 1}) =>
@@ -63,7 +65,14 @@ void main() {
       ProviderScope(
         overrides: [
           authRepositoryProvider.overrideWithValue(FakeAuthRepository()),
-          workoutHistoryProvider.overrideWith((ref) async => [entry(1, 2)]),
+          progressSummaryProvider.overrideWith(
+            (ref) async => ProgressSummary(
+              totalWorkouts: 1,
+              completedSets: 1,
+              prescribedSets: 2,
+              recentActivity: [entry(1, 2)],
+            ),
+          ),
           workoutControllerProvider.overrideWith(() => _NoWorkout()),
         ],
         child: const AthleteOSApp(),

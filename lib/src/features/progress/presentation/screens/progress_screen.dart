@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../core/widgets/page_shell.dart';
-import '../../../training/application/controllers/workout_controller.dart';
+import '../../application/progress_providers.dart';
 import '../../domain/progress_metrics.dart';
 
 class ProgressScreen extends ConsumerWidget {
@@ -18,32 +18,32 @@ class ProgressScreen extends ConsumerWidget {
         ),
         const SizedBox(height: 16),
         ref
-            .watch(workoutHistoryProvider)
+            .watch(progressSummaryProvider)
             .when(
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Column(
                 children: [
                   const Text('Could not load workout history.'),
                   TextButton(
-                    onPressed: () => ref.invalidate(workoutHistoryProvider),
+                    onPressed: () => ref.invalidate(progressSummaryProvider),
                     child: const Text('Retry'),
                   ),
                 ],
               ),
-              data: (history) {
-                if (history.isEmpty) {
+              data: (summary) {
+                if (summary.totalWorkouts == 0) {
                   return const Text(
                     'Complete your first workout to see your progress.',
                   );
                 }
-                final metrics = ProgressMetrics(history);
+                final metrics = ProgressMetrics(summary.recentActivity);
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${metrics.totalWorkouts} completed workouts'),
-                    Text('${metrics.completedSets} completed sets'),
-                    Text('${metrics.prescribedSets} prescribed sets'),
-                    Text('Overall ${metrics.completion.label}'),
+                    Text('${summary.totalWorkouts} completed workouts'),
+                    Text('${summary.completedSets} completed sets'),
+                    Text('${summary.prescribedSets} prescribed sets'),
+                    Text('Overall ${summary.completion.label}'),
                     const Text('Grades measure prescription completion.'),
                     if (metrics.recentChange != null)
                       Text(
@@ -54,7 +54,7 @@ class ProgressScreen extends ConsumerWidget {
                       'Recent workout activity',
                       style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    for (final entry in history.take(10))
+                    for (final entry in summary.recentActivity)
                       Card(
                         child: ListTile(
                           title: Text(entry.workoutTitle),

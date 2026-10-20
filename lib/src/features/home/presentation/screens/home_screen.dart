@@ -59,10 +59,6 @@ class HomeScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-              IconButton.filledTonal(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications_none_rounded),
-              ),
             ],
           ),
           const SizedBox(height: 18),
@@ -183,7 +179,8 @@ class _TodayWorkoutCard extends ConsumerWidget {
                         ),
                       ),
                       TextButton(
-                        onPressed: () {},
+                        onPressed: () =>
+                            context.go(AppRoutes.workoutPath(workout.id)),
                         child: Text(
                           l.viewPlan,
                           style: const TextStyle(fontWeight: FontWeight.w900),

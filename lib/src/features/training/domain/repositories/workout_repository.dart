@@ -9,5 +9,8 @@ abstract interface class WorkoutRepository {
 
   Future<void> submitWorkoutResult(WorkoutResult result);
 
-  Future<List<WorkoutHistoryEntry>> getWorkoutHistory();
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory({
+    int page = 1,
+    int perPage = 20,
+  });
 }

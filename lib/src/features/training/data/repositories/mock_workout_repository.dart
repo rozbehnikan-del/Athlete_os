@@ -141,9 +141,12 @@ class MockWorkoutRepository implements WorkoutRepository {
   }
 
   @override
-  Future<List<WorkoutHistoryEntry>> getWorkoutHistory() async =>
-      List.unmodifiable(
-        _submittedResults.map(
+  Future<List<WorkoutHistoryEntry>> getWorkoutHistory({
+    int page = 1,
+    int perPage = 20,
+  }) async => List.unmodifiable(
+    _submittedResults
+        .map(
           (result) => WorkoutHistoryEntry(
             workoutId: result.workoutId,
             workoutTitle:
@@ -152,8 +155,10 @@ class MockWorkoutRepository implements WorkoutRepository {
             setResults: result.setResults,
             notes: result.notes,
           ),
-        ),
-      );
+        )
+        .skip((page - 1) * perPage)
+        .take(perPage),
+  );
 
   List<WorkoutResult> get submittedResults =>
       List.unmodifiable(_submittedResults);

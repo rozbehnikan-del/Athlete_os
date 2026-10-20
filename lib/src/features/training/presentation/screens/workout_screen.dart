@@ -660,6 +660,27 @@ class _TrainingHistoryView extends ConsumerWidget {
           : Column(
               children: [
                 for (final result in items) _WorkoutHistoryCard(result: result),
+                if (ref.read(workoutHistoryProvider.notifier).hasMore)
+                  TextButton(
+                    onPressed: () async {
+                      try {
+                        await ref
+                            .read(workoutHistoryProvider.notifier)
+                            .loadMore();
+                      } catch (_) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Could not load more history. Please try again.',
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    child: const Text('Load more'),
+                  ),
               ],
             ),
     );

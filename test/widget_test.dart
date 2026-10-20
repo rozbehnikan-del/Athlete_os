@@ -1,4 +1,6 @@
 import 'package:athlete_os/src/app/athlete_os_app.dart';
+import 'package:athlete_os/src/features/progress/application/progress_providers.dart';
+import 'package:athlete_os/src/features/progress/domain/progress_summary.dart';
 import 'package:athlete_os/src/features/training/application/workout_providers.dart';
 import 'package:athlete_os/src/features/training/data/repositories/mock_workout_repository.dart';
 import 'package:flutter/material.dart';
@@ -35,6 +37,14 @@ Widget testApp() {
     overrides: [
       authRepositoryProvider.overrideWith((ref) => FakeAuthRepository()),
       workoutRepositoryProvider.overrideWith((ref) => MockWorkoutRepository()),
+      progressSummaryProvider.overrideWith(
+        (ref) async => const ProgressSummary(
+          totalWorkouts: 0,
+          completedSets: 0,
+          prescribedSets: 0,
+          recentActivity: [],
+        ),
+      ),
     ],
     child: const AthleteOSApp(),
   );
@@ -106,10 +116,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Coach target').hitTestable(), findsOneWidget);
-    expect(
-      find.text('Back Squat').hitTestable(),
-      findsOneWidget,
-    );
+    expect(find.text('Back Squat').hitTestable(), findsOneWidget);
   });
 
   testWidgets('Completing and editing a set updates UI', (tester) async {

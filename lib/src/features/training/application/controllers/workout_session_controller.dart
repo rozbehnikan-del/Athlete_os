@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../progress/application/progress_providers.dart';
 
 import '../../domain/entities/exercise_prescription.dart';
 import '../../domain/entities/exercise_set.dart';
@@ -318,6 +319,7 @@ class WorkoutSessionController extends AsyncNotifier<WorkoutSessionState> {
     try {
       await ref.read(workoutRepositoryProvider).submitWorkoutResult(result);
       ref.invalidate(workoutHistoryProvider);
+      ref.invalidate(progressSummaryProvider);
       ref.invalidate(workoutControllerProvider);
       state = AsyncData(current.copyWith(submitting: false, finished: true));
       return true;

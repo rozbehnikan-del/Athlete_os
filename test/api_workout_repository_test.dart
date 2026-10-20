@@ -249,19 +249,19 @@ void main() {
     });
 
     test(
-      'history loads every page and keeps prescribed denominator for partial sessions',
+      'history loads only the requested page and keeps prescribed denominator',
       () async {
         var calls = 0;
         final repository = repositoryFor((request) async {
           calls++;
-          expect(request.url.queryParameters['page'], '$calls');
+          expect(request.url.queryParameters['page'], '2');
           final envelope = historyEnvelope();
           envelope['meta'] = {'page': calls, 'per_page': 20, 'total': 2};
           return jsonResponse(envelope);
         });
-        final history = await repository.getWorkoutHistory();
-        expect(calls, 2);
-        expect(history.length, 2);
+        final history = await repository.getWorkoutHistory(page: 2);
+        expect(calls, 1);
+        expect(history.length, 1);
         expect(history.first.completedSets, 1);
         expect(history.first.totalSets, 2);
         expect(history.first.completion.grade, 'C');

@@ -7,7 +7,7 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../application/controllers/crossfit_session_controller.dart';
 import '../../domain/entities/crossfit.dart';
-import '../../domain/entities/workout.dart';
+import 'mixed_session_screen.dart';
 import 'workout_screen.dart';
 
 class WorkoutEntryScreen extends ConsumerWidget {
@@ -32,61 +32,10 @@ class WorkoutEntryScreen extends ConsumerWidget {
           return CrossFitWorkoutScreen(workoutId: workoutId);
         }
         if (workout.isMixedSession) {
-          return PageShell(
-            dark: true,
-            child: _MixedSessionGuard(workout: workout),
-          );
+          return MixedSessionScreen(workoutId: workoutId);
         }
         return WorkoutScreen(workoutId: workoutId);
       },
-    );
-  }
-}
-
-class _MixedSessionGuard extends StatelessWidget {
-  const _MixedSessionGuard({required this.workout});
-
-  final Workout workout;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          workout.title,
-          style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: AppColors.darkSurface,
-            borderRadius: BorderRadius.circular(AppRadii.lg),
-          ),
-          child: const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Mixed session protected',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              SizedBox(height: 10),
-              Text(
-                'This session contains both set-based strength work and scored WODs. '
-                'This app build will not submit only part of the session and mark the whole workout complete.',
-                style: TextStyle(color: Colors.white70, height: 1.45),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

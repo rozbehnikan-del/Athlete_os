@@ -1,107 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
-import '../../../app/application/app_theme_controller.dart';
 import '../../../core/errors/app_exception.dart';
-import '../../auth/application/auth_controller.dart';
 import '../application/coach_providers.dart';
 import 'create_workout_screen.dart';
 import 'create_crossfit_session_screen.dart';
+import 'coach_dashboard_view.dart';
 
 String coachError(Object error) => error is AppException
     ? error.message
     : 'Could not load data. Please try again.';
 
-class CoachHomeScreen extends ConsumerWidget {
+class CoachHomeScreen extends StatelessWidget {
   const CoachHomeScreen({super.key});
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authControllerProvider).asData?.value;
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Coach Home'),
-        actions: [
-          PopupMenuButton<ThemeMode>(
-            tooltip: 'Appearance',
-            icon: const Icon(Icons.brightness_6_outlined),
-            onSelected: (mode) => ref
-                .read(appThemeControllerProvider.notifier)
-                .setThemeMode(mode),
-            itemBuilder: (_) => [
-              for (final mode in ThemeMode.values)
-                PopupMenuItem(value: mode, child: Text(mode.name)),
-            ],
-          ),
-          IconButton(
-            tooltip: 'Sign Out',
-            icon: const Icon(Icons.logout),
-            onPressed: () => ref.read(authControllerProvider.notifier).logout(),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(coachRosterProvider);
-          await ref.read(coachRosterProvider.future);
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            Text(
-              user?.fullName ?? '',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 20),
-            ref
-                .watch(coachRosterProvider)
-                .when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (e, _) => Column(
-                    children: [
-                      Text(coachError(e)),
-                      TextButton(
-                        onPressed: () => ref.invalidate(coachRosterProvider),
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
-                  data: (athletes) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'My Athletes (${athletes.length})',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      if (athletes.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 16),
-                          child: Text('No athletes assigned yet.'),
-                        ),
-                      for (final athlete in athletes)
-                        Card(
-                          child: ListTile(
-                            title: Text(athlete.name),
-                            subtitle: Text(
-                              [
-                                if (athlete.email != null) athlete.email!,
-                                if (athlete.profile['experience_level'] != null)
-                                  '${athlete.profile['experience_level']}',
-                              ].join(' • '),
-                            ),
-                            trailing: const Icon(Icons.chevron_right),
-                            onTap: () =>
-                                context.push('/coach/athletes/${athlete.id}'),
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => const CoachDashboardView();
 }
 
 class CoachAthleteScreen extends ConsumerWidget {

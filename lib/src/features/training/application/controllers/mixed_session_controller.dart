@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../progress/application/progress_providers.dart';
@@ -5,6 +7,7 @@ import '../../domain/entities/crossfit.dart';
 import '../../domain/entities/exercise_set.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_result.dart';
+import '../drafts/mixed_session_draft_store.dart';
 import '../workout_providers.dart';
 import 'crossfit_session_controller.dart';
 import 'workout_controller.dart';
@@ -112,22 +115,56 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
         ),
     };
 
+    Map<String, dynamic>? stored;
+    try {
+      stored = await ref.read(mixedSessionDraftStoreProvider).load(workoutId);
+    } catch (_) {
+      // Storage is best-effort; never prevent an athlete from training.
+    }
+    final snapshot = MixedSessionDraftSnapshot.restore(
+      stored,
+      defaultSets: setDrafts,
+      defaultWods: wodDrafts,
+      blockIds: [for (final block in workout.session!.blocks) block.id],
+    );
     return MixedSessionState(
       workout: workout,
-      setDrafts: Map.unmodifiable(setDrafts),
-      wodDrafts: Map.unmodifiable(wodDrafts),
+      setDrafts: snapshot.setDrafts,
+      wodDrafts: snapshot.wodDrafts,
+      currentBlockIndex: snapshot.currentBlockIndex,
+      completedBlockIds: snapshot.completedBlockIds,
     );
+  }
+
+  void _persist(MixedSessionState current) {
+    unawaited(_persistSafely(current));
+  }
+
+  Future<void> _persistSafely(MixedSessionState current) async {
+    try {
+      await ref.read(mixedSessionDraftStoreProvider).save(
+        workoutId,
+        MixedSessionDraftSnapshot(
+          currentBlockIndex: current.currentBlockIndex,
+          completedBlockIds: current.completedBlockIds,
+          setDrafts: current.setDrafts,
+          wodDrafts: current.wodDrafts,
+        ).toJson(),
+      );
+    } catch (_) {
+      // Keep active session usable if device storage is unavailable.
+    }
   }
 
   void previousBlock() {
     final current = state.requireValue;
     if (current.isFirstBlock) return;
-    state = AsyncData(
-      current.copyWith(
-        currentBlockIndex: current.currentBlockIndex - 1,
-        clearError: true,
-      ),
+    final updated = current.copyWith(
+      currentBlockIndex: current.currentBlockIndex - 1,
+      clearError: true,
     );
+    state = AsyncData(updated);
+    _persist(updated);
   }
 
   bool completeCurrentBlockAndContinue() {
@@ -152,22 +189,25 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
         ? current.currentBlockIndex
         : current.currentBlockIndex + 1;
 
-    state = AsyncData(
-      current.copyWith(
-        currentBlockIndex: nextIndex,
-        completedBlockIds: Set.unmodifiable(completed),
-        clearError: true,
-      ),
+    final updated = current.copyWith(
+      currentBlockIndex: nextIndex,
+      completedBlockIds: Set.unmodifiable(completed),
+      clearError: true,
     );
+    state = AsyncData(updated);
+    _persist(updated);
     return true;
   }
 
   void goToBlock(int index) {
     final current = state.requireValue;
     if (index < 0 || index >= current.blocks.length) return;
-    state = AsyncData(
-      current.copyWith(currentBlockIndex: index, clearError: true),
+    final updated = current.copyWith(
+      currentBlockIndex: index,
+      clearError: true,
     );
+    state = AsyncData(updated);
+    _persist(updated);
   }
 
   void updateSetDraft(
@@ -191,9 +231,12 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       notes: notes,
     );
 
-    state = AsyncData(
-      current.copyWith(setDrafts: Map.unmodifiable(drafts), clearError: true),
+    final updated = current.copyWith(
+      setDrafts: Map.unmodifiable(drafts),
+      clearError: true,
     );
+    state = AsyncData(updated);
+    _persist(updated);
   }
 
   void updateWodDraft(
@@ -223,9 +266,12 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       notes: notes,
     );
 
-    state = AsyncData(
-      current.copyWith(wodDrafts: Map.unmodifiable(drafts), clearError: true),
+    final updated = current.copyWith(
+      wodDrafts: Map.unmodifiable(drafts),
+      clearError: true,
     );
+    state = AsyncData(updated);
+    _persist(updated);
   }
 
   Future<bool> submit() async {
@@ -274,6 +320,12 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
               completedAt: DateTime.now(),
             ),
           );
+
+      try {
+        await ref.read(mixedSessionDraftStoreProvider).clear(workoutId);
+      } catch (_) {
+        // Remote completion succeeded even if removing the cache failed.
+      }
 
       ref.invalidate(workoutHistoryProvider);
       ref.invalidate(progressSummaryProvider);

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -11,14 +13,29 @@ import '../../application/controllers/workout_session_controller.dart';
 import '../../domain/entities/crossfit.dart';
 import '../../domain/entities/exercise_prescription.dart';
 
-class MixedSessionScreen extends ConsumerWidget {
+class MixedSessionScreen extends ConsumerStatefulWidget {
   const MixedSessionScreen({super.key, required this.workoutId});
 
   final String workoutId;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final asyncState = ref.watch(mixedSessionControllerProvider(workoutId));
+  ConsumerState<MixedSessionScreen> createState() => _MixedSessionScreenState();
+}
+
+class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
+  Timer? _timer;
+  String? _activeWodId;
+  final Map<String, int> _remainingSeconds = {};
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final asyncState = ref.watch(mixedSessionControllerProvider(widget.workoutId));
 
     return PageShell(
       dark: true,
@@ -26,56 +43,89 @@ class MixedSessionScreen extends ConsumerWidget {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
             Text(error.toString(), style: const TextStyle(color: Colors.white)),
-        data: (state) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              state.workout.title,
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                    color: Colors.white,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Mixed CrossFit session',
-              style: TextStyle(
-                color: Colors.white60,
-                fontWeight: FontWeight.w700,
+        data: (state) {
+          final block = state.currentBlock;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                state.workout.title,
+                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                      color: Colors.white,
+                    ),
               ),
-            ),
-            const SizedBox(height: 14),
-            LinearProgressIndicator(
-              value: state.progress.clamp(0.0, 1.0).toDouble(),
-              color: AppColors.primaryGreen,
-              backgroundColor: Colors.white12,
-              minHeight: 8,
-              borderRadius: BorderRadius.circular(99),
-            ),
-            const SizedBox(height: 18),
-            for (final exercise in state.workout.exercises) ...[
-              _StrengthCard(
-                exercise: exercise,
-                drafts: state.setDrafts,
-                onChanged: (key, {reps, weight, completed, rpe, clearRpe}) {
+              const SizedBox(height: 6),
+              Text(
+                'Block ${state.currentBlockIndex + 1} of ${state.blocks.length}',
+                style: const TextStyle(
+                  color: Colors.white60,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 14),
+              LinearProgressIndicator(
+                value: state.progress.clamp(0.0, 1.0).toDouble(),
+                color: AppColors.primaryGreen,
+                backgroundColor: Colors.white12,
+                minHeight: 8,
+                borderRadius: BorderRadius.circular(99),
+              ),
+              const SizedBox(height: 14),
+              _BlockStrip(
+                blocks: state.blocks,
+                currentIndex: state.currentBlockIndex,
+                completedIds: state.completedBlockIds,
+                onSelected: (index) {
+                  _pauseTimer();
                   ref
-                      .read(mixedSessionControllerProvider(workoutId).notifier)
-                      .updateSetDraft(
-                        key,
-                        repsInput: reps,
-                        weightInput: weight,
-                        completed: completed,
-                        rpe: clearRpe == true ? null : rpe,
-                      );
+                      .read(
+                        mixedSessionControllerProvider(widget.workoutId).notifier,
+                      )
+                      .goToBlock(index);
                 },
               ),
-              const SizedBox(height: 12),
-            ],
-            for (final block in state.workout.session!.blocks) ...[
-              if (block.wod != null)
+              const SizedBox(height: 18),
+              _BlockHeader(block: block),
+              const SizedBox(height: 14),
+              if (block.type == TrainingBlockType.strength)
+                for (final exercise in state.workout.exercises) ...[
+                  _StrengthCard(
+                    exercise: exercise,
+                    drafts: state.setDrafts,
+                    onChanged: (
+                      key, {
+                      reps,
+                      weight,
+                      completed,
+                      rpe,
+                      clearRpe,
+                    }) {
+                      ref
+                          .read(
+                            mixedSessionControllerProvider(widget.workoutId)
+                                .notifier,
+                          )
+                          .updateSetDraft(
+                            key,
+                            repsInput: reps,
+                            weightInput: weight,
+                            completed: completed,
+                            rpe: clearRpe == true ? null : rpe,
+                          );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ]
+              else if (block.wod != null)
                 _WodCard(
                   wod: block.wod!,
                   title: block.title,
                   draft: state.wodDrafts[block.wod!.id]!,
+                  remainingSeconds: _remainingFor(block.wod!),
+                  timerRunning: _activeWodId == block.wod!.id && _timer != null,
+                  onStartTimer: () => _startTimer(block.wod!),
+                  onPauseTimer: _pauseTimer,
+                  onResetTimer: () => _resetTimer(block.wod!),
                   onChanged: ({
                     ScalingLevel? scaling,
                     String? primary,
@@ -87,7 +137,10 @@ class MixedSessionScreen extends ConsumerWidget {
                     String? notes,
                   }) {
                     ref
-                        .read(mixedSessionControllerProvider(workoutId).notifier)
+                        .read(
+                          mixedSessionControllerProvider(widget.workoutId)
+                              .notifier,
+                        )
                         .updateWodDraft(
                           block.wod!.id,
                           scaling: scaling,
@@ -99,44 +152,151 @@ class MixedSessionScreen extends ConsumerWidget {
                           notes: notes,
                         );
                   },
+                )
+              else
+                _InstructionCard(block: block),
+              if (state.error != null) ...[
+                const SizedBox(height: 12),
+                Text(
+                  state.error!,
+                  style: const TextStyle(
+                    color: AppColors.red,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
-              if (block.wod != null) const SizedBox(height: 12),
-            ],
-            if (state.error != null) ...[
-              Text(
-                state.error!,
-                style: const TextStyle(
-                  color: AppColors.red,
-                  fontWeight: FontWeight.w800,
+              ],
+              const SizedBox(height: 18),
+              if (state.finished)
+                const StatusBadge(
+                  label: 'SESSION SAVED',
+                  color: AppColors.primaryGreen,
+                  dark: true,
+                  icon: Icons.check_rounded,
+                )
+              else
+                Row(
+                  children: [
+                    if (!state.isFirstBlock) ...[
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: state.submitting
+                              ? null
+                              : () {
+                                  _pauseTimer();
+                                  ref
+                                      .read(
+                                        mixedSessionControllerProvider(
+                                          widget.workoutId,
+                                        ).notifier,
+                                      )
+                                      .previousBlock();
+                                },
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          label: const Text('Previous'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                    ],
+                    Expanded(
+                      flex: 2,
+                      child: state.isLastBlock
+                          ? PrimaryButton(
+                              label:
+                                  state.submitting ? 'Saving…' : 'Finish Session',
+                              icon: Icons.check_rounded,
+                              onPressed: state.submitting
+                                  ? null
+                                  : () => _finish(context),
+                            )
+                          : PrimaryButton(
+                              label: state.completedBlockIds.contains(block.id)
+                                  ? 'Next Block'
+                                  : 'Complete & Continue',
+                              icon: Icons.arrow_forward_rounded,
+                              onPressed: state.submitting
+                                  ? null
+                                  : () {
+                                      _pauseTimer();
+                                      ref
+                                          .read(
+                                            mixedSessionControllerProvider(
+                                              widget.workoutId,
+                                            ).notifier,
+                                          )
+                                          .completeCurrentBlockAndContinue();
+                                    },
+                            ),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 12),
             ],
-            if (state.finished)
-              const StatusBadge(
-                label: 'SESSION SAVED',
-                color: AppColors.primaryGreen,
-                dark: true,
-                icon: Icons.check_rounded,
-              )
-            else
-              PrimaryButton(
-                label: state.submitting ? 'Saving…' : 'Finish Session',
-                icon: Icons.check_rounded,
-                onPressed: state.submitting
-                    ? null
-                    : () => _submit(context, ref),
-              ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
-  Future<void> _submit(BuildContext context, WidgetRef ref) async {
+  int? _remainingFor(WodDefinition wod) {
+    final duration = wod.durationSeconds ?? wod.timeCapSeconds;
+    if (duration == null) return null;
+    return _remainingSeconds[wod.id] ?? duration;
+  }
+
+  void _startTimer(WodDefinition wod) {
+    final duration = wod.durationSeconds ?? wod.timeCapSeconds;
+    if (duration == null) return;
+
+    if (_activeWodId != wod.id) {
+      _timer?.cancel();
+      _activeWodId = wod.id;
+    }
+    _remainingSeconds.putIfAbsent(wod.id, () => duration);
+    if (_remainingSeconds[wod.id] == 0) {
+      _remainingSeconds[wod.id] = duration;
+    }
+
+    _timer?.cancel();
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final current = _remainingSeconds[wod.id] ?? duration;
+      if (current <= 1) {
+        timer.cancel();
+        _timer = null;
+        setState(() {
+          _remainingSeconds[wod.id] = 0;
+        });
+        return;
+      }
+      setState(() {
+        _remainingSeconds[wod.id] = current - 1;
+      });
+    });
+    setState(() {});
+  }
+
+  void _pauseTimer() {
+    _timer?.cancel();
+    _timer = null;
+    if (mounted) setState(() {});
+  }
+
+  void _resetTimer(WodDefinition wod) {
+    _timer?.cancel();
+    _timer = null;
+    final duration = wod.durationSeconds ?? wod.timeCapSeconds;
+    if (duration == null) return;
+    setState(() {
+      _activeWodId = wod.id;
+      _remainingSeconds[wod.id] = duration;
+    });
+  }
+
+  Future<void> _finish(BuildContext context) async {
+    _pauseTimer();
     try {
       final saved = await ref
-          .read(mixedSessionControllerProvider(workoutId).notifier)
+          .read(
+            mixedSessionControllerProvider(widget.workoutId).notifier,
+          )
           .submit();
       if (saved && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -152,6 +312,177 @@ class MixedSessionScreen extends ConsumerWidget {
         );
       }
     }
+  }
+}
+
+class _BlockStrip extends StatelessWidget {
+  const _BlockStrip({
+    required this.blocks,
+    required this.currentIndex,
+    required this.completedIds,
+    required this.onSelected,
+  });
+
+  final List<TrainingBlock> blocks;
+  final int currentIndex;
+  final Set<String> completedIds;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          for (var index = 0; index < blocks.length; index++) ...[
+            ChoiceChip(
+              selected: currentIndex == index,
+              onSelected: (_) => onSelected(index),
+              avatar: completedIds.contains(blocks[index].id)
+                  ? const Icon(Icons.check_rounded, size: 16)
+                  : null,
+              label: Text(
+                '${index + 1}. ${_blockTypeLabel(blocks[index].type)}',
+              ),
+            ),
+            if (index != blocks.length - 1) const SizedBox(width: 8),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _BlockHeader extends StatelessWidget {
+  const _BlockHeader({required this.block});
+
+  final TrainingBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AppColors.darkSurface,
+            borderRadius: BorderRadius.circular(AppRadii.md),
+          ),
+          child: Icon(_blockIcon(block.type), color: Colors.white),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _blockTypeLabel(block.type).toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                block.title,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              if (block.coachNote != null)
+                Text(
+                  block.coachNote!,
+                  style: const TextStyle(color: Colors.white70),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _InstructionCard extends StatelessWidget {
+  const _InstructionCard({required this.block});
+
+  final TrainingBlock block;
+
+  @override
+  Widget build(BuildContext context) {
+    final prescription = block.prescription;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
+      child: prescription.isEmpty
+          ? const Text(
+              'Follow the coach instructions for this block.',
+              style: TextStyle(color: Colors.white70),
+            )
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final entry in prescription.entries) ...[
+                  Text(
+                    _prettyKey(entry.key),
+                    style: const TextStyle(
+                      color: Colors.white54,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  _PrescriptionValue(value: entry.value),
+                  const SizedBox(height: 14),
+                ],
+              ],
+            ),
+    );
+  }
+}
+
+class _PrescriptionValue extends StatelessWidget {
+  const _PrescriptionValue({required this.value});
+
+  final Object? value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value is List) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final item in value as List)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Text(
+                item is Map
+                    ? item.entries
+                        .map((entry) => '${entry.key}: ${entry.value}')
+                        .join('  •  ')
+                    : '• $item',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+    return Text(
+      '$value',
+      style: const TextStyle(
+        color: Colors.white,
+        fontWeight: FontWeight.w800,
+      ),
+    );
   }
 }
 
@@ -187,15 +518,6 @@ class _StrengthCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'STRENGTH',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
           Text(
             exercise.name,
             style: const TextStyle(
@@ -323,12 +645,22 @@ class _WodCard extends StatelessWidget {
     required this.wod,
     required this.title,
     required this.draft,
+    required this.remainingSeconds,
+    required this.timerRunning,
+    required this.onStartTimer,
+    required this.onPauseTimer,
+    required this.onResetTimer,
     required this.onChanged,
   });
 
   final WodDefinition wod;
   final String title;
   final WodResultDraft draft;
+  final int? remainingSeconds;
+  final bool timerRunning;
+  final VoidCallback onStartTimer;
+  final VoidCallback onPauseTimer;
+  final VoidCallback onResetTimer;
   final _WodChanged onChanged;
 
   @override
@@ -358,24 +690,16 @@ class _WodCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'METCON / WOD',
-            style: TextStyle(
-              color: Colors.white54,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
+          if (remainingSeconds != null) ...[
+            _TimerPanel(
+              seconds: remainingSeconds!,
+              running: timerRunning,
+              onStart: onStartTimer,
+              onPause: onPauseTimer,
+              onReset: onResetTimer,
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 12),
+            const SizedBox(height: 16),
+          ],
           if (wod.scalingOptions.isNotEmpty)
             DropdownButtonFormField<ScalingLevel>(
               initialValue: draft.scaling,
@@ -437,10 +761,9 @@ class _WodCard extends StatelessWidget {
                     const SizedBox(width: 10),
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        initialValue:
-                            const {'kg', 'lb'}.contains(draft.unit)
-                                ? draft.unit
-                                : 'kg',
+                        initialValue: const {'kg', 'lb'}.contains(draft.unit)
+                            ? draft.unit
+                            : 'kg',
                         dropdownColor: AppColors.darkSurface,
                         decoration: const InputDecoration(labelText: 'Unit'),
                         items: const [
@@ -549,4 +872,88 @@ class _WodCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _TimerPanel extends StatelessWidget {
+  const _TimerPanel({
+    required this.seconds,
+    required this.running,
+    required this.onStart,
+    required this.onPause,
+    required this.onReset,
+  });
+
+  final int seconds;
+  final bool running;
+  final VoidCallback onStart;
+  final VoidCallback onPause;
+  final VoidCallback onReset;
+
+  @override
+  Widget build(BuildContext context) {
+    final minutes = seconds ~/ 60;
+    final remainder = seconds % 60;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.darkCard,
+        borderRadius: BorderRadius.circular(AppRadii.lg),
+      ),
+      child: Row(
+        children: [
+          Text(
+            '${minutes}:${remainder.toString().padLeft(2, '0')}',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 38,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const Spacer(),
+          IconButton.filledTonal(
+            tooltip: running ? 'Pause' : 'Start',
+            onPressed: running ? onPause : onStart,
+            icon: Icon(
+              running ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton.outlined(
+            tooltip: 'Reset',
+            onPressed: onReset,
+            icon: const Icon(Icons.restart_alt_rounded),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _blockTypeLabel(TrainingBlockType type) => switch (type) {
+  TrainingBlockType.warmup => 'Warm-up',
+  TrainingBlockType.strength => 'Strength',
+  TrainingBlockType.skill => 'Skill',
+  TrainingBlockType.metcon => 'Metcon',
+  TrainingBlockType.accessory => 'Accessory',
+};
+
+IconData _blockIcon(TrainingBlockType type) => switch (type) {
+  TrainingBlockType.warmup => Icons.local_fire_department_rounded,
+  TrainingBlockType.strength => Icons.fitness_center_rounded,
+  TrainingBlockType.skill => Icons.auto_awesome_rounded,
+  TrainingBlockType.metcon => Icons.timer_rounded,
+  TrainingBlockType.accessory => Icons.self_improvement_rounded,
+};
+
+String _prettyKey(String value) {
+  final words = value
+      .replaceAll('_', ' ')
+      .split(' ')
+      .where((word) => word.isNotEmpty)
+      .toList();
+  return words
+      .map((word) => '${word[0].toUpperCase()}${word.substring(1)}')
+      .join(' ');
 }

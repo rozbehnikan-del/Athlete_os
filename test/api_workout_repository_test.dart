@@ -129,6 +129,67 @@ void main() {
       expect(wods.single['rpe'], 9);
     });
 
+    test('mixed result posts strength sets and WODs atomically', () async {
+      late Map<String, dynamic> requestedBody;
+      var calls = 0;
+      final repository = repositoryFor((request) async {
+        calls++;
+        requestedBody = jsonDecode(request.body) as Map<String, dynamic>;
+        return jsonResponse({
+          'data': {
+            'id': 'result-mixed',
+            'workout_id': 'mixed-workout',
+            'status': 'completed',
+            'completed_at': '2026-10-28T08:00:00Z',
+            'completed_sets': 1,
+            'completed_wods': 1,
+            'notes': null,
+          },
+        }, statusCode: 201);
+      });
+
+      await repository.submitWorkoutResult(
+        WorkoutResult(
+          workoutId: 'mixed-workout',
+          completedAt: DateTime.parse('2026-10-28T08:00:00Z'),
+          setResults: const [
+            SetResult(
+              setId: 'set-1',
+              prescriptionId: 'strength-1',
+              exerciseId: 'exercise-1',
+              setNumber: 1,
+              actualReps: 5,
+              actualWeight: 100,
+              weightUnit: WeightUnit.kg,
+              completed: true,
+              rpe: 8,
+            ),
+          ],
+          wodResults: const [
+            WodResultEntry(
+              wodId: 'wod-1',
+              scaling: ScalingLevel.rx,
+              score: RoundsRepsWodScore(rounds: 8, reps: 6),
+              rpe: 9,
+            ),
+          ],
+        ),
+      );
+
+      expect(calls, 1);
+      final sets = requestedBody['sets'] as List<dynamic>;
+      final wods = requestedBody['wods'] as List<dynamic>;
+      expect(sets, hasLength(1));
+      expect(wods, hasLength(1));
+      expect(sets.single['set_id'], 'set-1');
+      expect(wods.single['wod_id'], 'wod-1');
+      expect(wods.single['score'], {
+        'type': 'rounds_reps',
+        'rounds': 8,
+        'reps': 6,
+      });
+    });
+
     test('today API with null data returns no workout', () async {
       final repository = repositoryFor(
         (_) async => jsonResponse({'data': null}),

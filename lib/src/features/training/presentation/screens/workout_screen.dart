@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../../l10n/app_localizations.dart';
 import '../../../../app/router/routes.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/figma_v1_tokens.dart';
+import '../training_overview.dart';
 import '../../../../core/widgets/page_shell.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/progress_ring.dart';
@@ -49,22 +51,36 @@ class _WorkoutScreenState extends ConsumerState<WorkoutScreen> {
     final workoutId = widget.workoutId;
     if (workoutId == null) {
       return PageShell(
-        dark: true,
+        maxWidth: 560,
+        padding: const EdgeInsets.fromLTRB(
+          FigmaV1Tokens.pageGutter,
+          FigmaV1Tokens.mobileTopInset,
+          FigmaV1Tokens.pageGutter,
+          20,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              l.training,
-              style: Theme.of(
-                context,
-              ).textTheme.headlineLarge?.copyWith(color: Colors.white),
-            ),
-            const SizedBox(height: 14),
-            TabSelector(
-              labels: [l.today, l.history],
-              selected: _trainingTab,
-              dark: true,
-              onSelected: (index) => setState(() => _trainingTab = index),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    _trainingTab == 0 ? "Today's Training" : 'Training History',
+                    style: TextStyle(
+                      fontSize: 28,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => setState(
+                    () => _trainingTab = _trainingTab == 0 ? 1 : 0,
+                  ),
+                  child: Text(_trainingTab == 0 ? l.history : l.today),
+                ),
+              ],
             ),
             const SizedBox(height: 18),
             _trainingTab == 0
@@ -539,103 +555,11 @@ class _NumberField extends StatelessWidget {
   }
 }
 
-class _TrainingTodayView extends ConsumerWidget {
+class _TrainingTodayView extends StatelessWidget {
   const _TrainingTodayView();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context)!;
-    final workout = ref.watch(workoutControllerProvider);
-    return workout.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, stackTrace) =>
-          Text('$error', style: const TextStyle(color: Colors.white)),
-      data: (workout) => workout == null
-          ? Container(
-              padding: const EdgeInsets.all(16),
-              decoration: darkBoxDecoration(),
-              child: const Text(
-                'No active workout today',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            )
-          : Container(
-              padding: const EdgeInsets.all(16),
-              decoration: darkBoxDecoration(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    workout.title,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.headlineSmall?.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    workoutMetadata(workout),
-                    style: const TextStyle(
-                      color: Colors.white60,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  for (final exercise in workout.exercises)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 10),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: SizedBox(
-                              width: 48,
-                              height: 48,
-                              child: Image.asset(
-                                exerciseImagePath(exercise.exerciseSlug),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  exercise.name,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                                Text(
-                                  exercisePrescriptionDetail(exercise),
-                                  style: const TextStyle(
-                                    color: Colors.white60,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  const SizedBox(height: 8),
-                  PrimaryButton(
-                    label: l.startWorkout,
-                    icon: Icons.arrow_forward_rounded,
-                    onPressed: () =>
-                        context.go(AppRoutes.workoutPath(workout.id)),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
+  Widget build(BuildContext context) => const FigmaTrainingOverview();
 }
 
 class _TrainingHistoryView extends ConsumerWidget {
@@ -648,12 +572,12 @@ class _TrainingHistoryView extends ConsumerWidget {
     return history.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, stackTrace) =>
-          Text('$error', style: const TextStyle(color: Colors.white)),
+          Text('$error', style: TextStyle(color: Theme.of(context).colorScheme.error)),
       data: (items) => items.isEmpty
           ? Text(
               l.noWorkoutHistory,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
               ),
             )

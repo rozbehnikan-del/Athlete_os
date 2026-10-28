@@ -1,4 +1,5 @@
 import 'coach_models.dart';
+import 'crossfit_session_assignment.dart';
 
 abstract class CoachRepository {
   Future<List<CoachAthlete>> getAthletes();

@@ -1,6 +1,7 @@
 import '../../../core/api/api_client.dart';
 import '../../../core/errors/app_exception.dart';
 import '../domain/coach_models.dart';
+import '../domain/crossfit_session_assignment.dart';
 import '../domain/coach_repository.dart';
 
 class ApiCoachRepository implements CoachRepository {
@@ -73,4 +74,16 @@ class ApiCoachRepository implements CoachRepository {
     );
     return _parse(() => (json['data'] as Map<String, dynamic>)['id'] as String);
   }
+  @override
+  Future<String> assignSession(
+    String athleteId,
+    CrossFitSessionAssignment session,
+  ) async {
+    final json = await client.post(
+      '/v1/coaches/me/athletes/$athleteId/sessions',
+      body: session.toJson(),
+    );
+    return _parse(() => (json['data'] as Map<String, dynamic>)['id'] as String);
+  }
+
 }

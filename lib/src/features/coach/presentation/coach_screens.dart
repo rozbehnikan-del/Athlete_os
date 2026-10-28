@@ -6,6 +6,7 @@ import '../../../core/errors/app_exception.dart';
 import '../../auth/application/auth_controller.dart';
 import '../application/coach_providers.dart';
 import 'create_workout_screen.dart';
+import 'create_crossfit_session_screen.dart';
 
 String coachError(Object error) => error is AppException
     ? error.message
@@ -150,6 +151,17 @@ class CoachAthleteScreen extends ConsumerWidget {
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => CreateWorkoutScreen(athleteId: athleteId),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              FilledButton.icon(
+                icon: const Icon(Icons.sports_gymnastics_rounded),
+                label: const Text('Build CrossFit Session'),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        CreateCrossFitSessionScreen(athleteId: athleteId),
                   ),
                 ),
               ),

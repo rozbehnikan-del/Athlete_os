@@ -145,7 +145,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
   }
 
   void _commitDraft(MixedSessionState updated) {
-    _commitDraft(updated);
+    state = AsyncData(updated);
     final encoded = MixedSessionDraftCodec.encode(
       workoutId: workoutId,
       sets: updated.setDrafts,

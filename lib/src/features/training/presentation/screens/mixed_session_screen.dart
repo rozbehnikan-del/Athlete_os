@@ -134,6 +134,7 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
                     ScalingLevel? scaling,
                     String? primary,
                     String? secondary,
+                    List<LoadAttemptDraft>? loadAttempts,
                     String? unit,
                     bool? dnf,
                     double? rpe,
@@ -150,6 +151,7 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
                           scaling: scaling,
                           primaryInput: primary,
                           secondaryInput: secondary,
+                          loadAttempts: loadAttempts,
                           unit: unit,
                           dnf: dnf,
                           rpe: clearRpe == true ? null : rpe,
@@ -618,6 +620,7 @@ typedef _WodChanged = void Function({
   ScalingLevel? scaling,
   String? primary,
   String? secondary,
+  List<LoadAttemptDraft>? loadAttempts,
   String? unit,
   bool? dnf,
   double? rpe,
@@ -732,6 +735,13 @@ class _WodCard extends StatelessWidget {
                 ),
               ],
             WodScoreType.load => [
+                if (wod.format == WodFormat.maxLoad)
+                  _MaxLoadAttempts(
+                    draft: draft,
+                    onChanged: (attempts) => onChanged(loadAttempts: attempts),
+                    onUnitChanged: (unit) => onChanged(unit: unit),
+                  )
+                else
                 Row(
                   children: [
                     Expanded(
@@ -855,6 +865,126 @@ class _WodCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MaxLoadAttempts extends StatelessWidget {
+  const _MaxLoadAttempts({
+    required this.draft,
+    required this.onChanged,
+    required this.onUnitChanged,
+  });
+
+  final WodResultDraft draft;
+  final ValueChanged<List<LoadAttemptDraft>> onChanged;
+  final ValueChanged<String> onUnitChanged;
+
+  void _update(int index, LoadAttemptDraft updated) {
+    final next = List<LoadAttemptDraft>.of(draft.loadAttempts);
+    next[index] = updated;
+    onChanged(List.unmodifiable(next));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final successful = draft.loadAttempts
+        .where((attempt) => attempt.successful)
+        .map((attempt) => double.tryParse(attempt.loadInput))
+        .whereType<double>()
+        .where((load) => load.isFinite && load > 0)
+        .toList();
+    final best = successful.isEmpty
+        ? null
+        : successful.reduce((a, b) => a > b ? a : b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Expanded(
+              child: Text(
+                'MAX LOAD ATTEMPTS',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+              ),
+            ),
+            SizedBox(
+              width: 90,
+              child: DropdownButtonFormField<String>(
+                initialValue: const {'kg', 'lb'}.contains(draft.unit) ? draft.unit : 'kg',
+                decoration: const InputDecoration(labelText: 'Unit'),
+                dropdownColor: AppColors.darkSurface,
+                items: const [
+                  DropdownMenuItem(value: 'kg', child: Text('kg')),
+                  DropdownMenuItem(value: 'lb', child: Text('lb')),
+                ],
+                onChanged: (unit) {
+                  if (unit != null) onUnitChanged(unit);
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (var index = 0; index < draft.loadAttempts.length; index++) ...[
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  key: ValueKey('load-attempt-${draft.loadAttempts[index].id}'),
+                  initialValue: draft.loadAttempts[index].loadInput,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(labelText: 'Attempt ${index + 1} (${draft.unit})'),
+                  onChanged: (input) => _update(
+                    index,
+                    draft.loadAttempts[index].copyWith(loadInput: input),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Tooltip(
+                message: 'Successful lift',
+                child: Checkbox(
+                  value: draft.loadAttempts[index].successful,
+                  onChanged: (success) => _update(
+                    index,
+                    draft.loadAttempts[index].copyWith(successful: success ?? false),
+                  ),
+                ),
+              ),
+              IconButton(
+                tooltip: 'Remove attempt',
+                onPressed: () => onChanged([
+                  for (var i = 0; i < draft.loadAttempts.length; i++)
+                    if (i != index) draft.loadAttempts[i],
+                ]),
+                icon: const Icon(Icons.remove_circle_outline_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+        TextButton.icon(
+          onPressed: draft.loadAttempts.length >= 30
+              ? null
+              : () => onChanged([
+                  ...draft.loadAttempts,
+                  LoadAttemptDraft(
+                    id: DateTime.now().microsecondsSinceEpoch.toString(),
+                  ),
+                ]),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text('Add attempt'),
+        ),
+        Text(
+          best == null
+              ? 'Record a successful attempt to set a best load.'
+              : 'Best successful load: $best ${draft.unit}',
+          style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w700),
+        ),
+      ],
     );
   }
 }

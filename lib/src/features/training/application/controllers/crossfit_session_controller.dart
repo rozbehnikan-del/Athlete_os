@@ -1,0 +1,260 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../progress/application/progress_providers.dart';
+import '../../domain/entities/crossfit.dart';
+import '../../domain/entities/workout.dart';
+import '../../domain/entities/workout_result.dart';
+import '../workout_providers.dart';
+import 'workout_controller.dart';
+
+final workoutDetailProvider = FutureProvider.family<Workout, String>(
+  (ref, workoutId) => ref
+      .watch(workoutRepositoryProvider)
+      .getWorkoutById(workoutId: workoutId),
+);
+
+final crossFitSessionControllerProvider = AsyncNotifierProvider.family<
+    CrossFitSessionController,
+    CrossFitSessionState,
+    String>(CrossFitSessionController.new);
+
+class WodResultDraft {
+  const WodResultDraft({
+    required this.wodId,
+    required this.scaling,
+    this.primaryInput = '',
+    this.secondaryInput = '',
+    this.unit = 'kg',
+    this.dnf = false,
+    this.rpe,
+    this.notes = '',
+  });
+
+  final String wodId;
+  final ScalingLevel scaling;
+  final String primaryInput;
+  final String secondaryInput;
+  final String unit;
+  final bool dnf;
+  final double? rpe;
+  final String notes;
+
+  WodResultDraft copyWith({
+    ScalingLevel? scaling,
+    String? primaryInput,
+    String? secondaryInput,
+    String? unit,
+    bool? dnf,
+    Object? rpe = _unset,
+    String? notes,
+  }) {
+    return WodResultDraft(
+      wodId: wodId,
+      scaling: scaling ?? this.scaling,
+      primaryInput: primaryInput ?? this.primaryInput,
+      secondaryInput: secondaryInput ?? this.secondaryInput,
+      unit: unit ?? this.unit,
+      dnf: dnf ?? this.dnf,
+      rpe: identical(rpe, _unset) ? this.rpe : rpe as double?,
+      notes: notes ?? this.notes,
+    );
+  }
+
+  WodScore? scoreFor(WodDefinition wod) {
+    switch (wod.scoreType) {
+      case WodScoreType.time:
+        final seconds = int.tryParse(primaryInput);
+        return seconds != null && seconds > 0 ? TimeWodScore(seconds) : null;
+      case WodScoreType.roundsReps:
+        final rounds = int.tryParse(primaryInput);
+        final reps = int.tryParse(secondaryInput);
+        return rounds != null && rounds >= 0 && reps != null && reps >= 0
+            ? RoundsRepsWodScore(rounds: rounds, reps: reps)
+            : null;
+      case WodScoreType.load:
+        final load = double.tryParse(primaryInput);
+        return load != null && load > 0 && (unit == 'kg' || unit == 'lb')
+            ? LoadWodScore(load: load, unit: unit)
+            : null;
+      case WodScoreType.reps:
+        final reps = int.tryParse(primaryInput);
+        return reps != null && reps >= 0 ? RepsWodScore(reps) : null;
+      case WodScoreType.calories:
+        final calories = int.tryParse(primaryInput);
+        return calories != null && calories >= 0
+            ? CaloriesWodScore(calories)
+            : null;
+      case WodScoreType.distance:
+        final distance = double.tryParse(primaryInput);
+        return distance != null &&
+                distance > 0 &&
+                const {'m', 'km', 'mi'}.contains(unit)
+            ? DistanceWodScore(distance: distance, unit: unit)
+            : null;
+      case WodScoreType.intervals:
+        final values = primaryInput
+            .split(',')
+            .map((value) => double.tryParse(value.trim()))
+            .toList();
+        return values.isNotEmpty && values.every((value) => value != null)
+            ? IntervalsWodScore(values.cast<double>())
+            : null;
+      case WodScoreType.none:
+        return const NoWodScore();
+    }
+  }
+
+  WodResultEntry? toResult(WodDefinition wod) {
+    final score = scoreFor(wod);
+    if (score == null || (rpe != null && (rpe! < 1 || rpe! > 10))) {
+      return null;
+    }
+    return WodResultEntry(
+      wodId: wodId,
+      scaling: scaling,
+      score: score,
+      dnf: dnf,
+      rpe: rpe,
+      notes: notes.trim().isEmpty ? null : notes.trim(),
+    );
+  }
+
+  static const _unset = Object();
+}
+
+class CrossFitSessionState {
+  const CrossFitSessionState({
+    required this.workout,
+    required this.drafts,
+    this.submitting = false,
+    this.finished = false,
+    this.error,
+  });
+
+  final Workout workout;
+  final Map<String, WodResultDraft> drafts;
+  final bool submitting;
+  final bool finished;
+  final String? error;
+
+  List<WodDefinition> get wods => workout.scoredWods;
+
+  CrossFitSessionState copyWith({
+    Map<String, WodResultDraft>? drafts,
+    bool? submitting,
+    bool? finished,
+    String? error,
+    bool clearError = false,
+  }) {
+    return CrossFitSessionState(
+      workout: workout,
+      drafts: drafts ?? this.drafts,
+      submitting: submitting ?? this.submitting,
+      finished: finished ?? this.finished,
+      error: clearError ? null : error ?? this.error,
+    );
+  }
+}
+
+class CrossFitSessionController extends AsyncNotifier<CrossFitSessionState> {
+  CrossFitSessionController(this.workoutId);
+
+  final String workoutId;
+
+  @override
+  Future<CrossFitSessionState> build() async {
+    final workout = await ref
+        .watch(workoutRepositoryProvider)
+        .getWorkoutById(workoutId: workoutId);
+    if (!workout.isWodOnly) {
+      throw StateError(
+        'CrossFit score entry currently requires a WOD-only session.',
+      );
+    }
+    final drafts = <String, WodResultDraft>{
+      for (final wod in workout.scoredWods)
+        wod.id: WodResultDraft(
+          wodId: wod.id,
+          scaling: wod.scalingOptions.isNotEmpty
+              ? wod.scalingOptions.first
+              : ScalingLevel.none,
+          unit: switch (wod.scoreType) {
+            WodScoreType.distance => 'm',
+            _ => 'kg',
+          },
+        ),
+    };
+    return CrossFitSessionState(workout: workout, drafts: drafts);
+  }
+
+  void update(
+    String wodId, {
+    ScalingLevel? scaling,
+    String? primaryInput,
+    String? secondaryInput,
+    String? unit,
+    bool? dnf,
+    Object? rpe = WodResultDraft._unset,
+    String? notes,
+  }) {
+    final current = state.requireValue;
+    final draft = current.drafts[wodId];
+    if (draft == null) throw StateError('Unknown WOD.');
+    final drafts = Map<String, WodResultDraft>.of(current.drafts);
+    drafts[wodId] = draft.copyWith(
+      scaling: scaling,
+      primaryInput: primaryInput,
+      secondaryInput: secondaryInput,
+      unit: unit,
+      dnf: dnf,
+      rpe: rpe,
+      notes: notes,
+    );
+    state = AsyncData(current.copyWith(drafts: drafts, clearError: true));
+  }
+
+  Future<bool> submit() async {
+    final current = state.requireValue;
+    if (current.submitting || current.finished) return false;
+
+    final results = <WodResultEntry>[];
+    for (final wod in current.wods) {
+      final result = current.drafts[wod.id]?.toResult(wod);
+      if (result == null) {
+        state = AsyncData(
+          current.copyWith(error: 'Complete all required WOD score fields.'),
+        );
+        return false;
+      }
+      results.add(result);
+    }
+
+    state = AsyncData(current.copyWith(submitting: true, clearError: true));
+    try {
+      await ref.read(workoutRepositoryProvider).submitWorkoutResult(
+            WorkoutResult(
+              workoutId: workoutId,
+              wodResults: results,
+              completedAt: DateTime.now(),
+            ),
+          );
+      ref.invalidate(workoutHistoryProvider);
+      ref.invalidate(progressSummaryProvider);
+      ref.invalidate(workoutControllerProvider);
+      ref.invalidate(workoutDetailProvider(workoutId));
+      state = AsyncData(
+        current.copyWith(submitting: false, finished: true, clearError: true),
+      );
+      return true;
+    } catch (_) {
+      state = AsyncData(
+        current.copyWith(
+          submitting: false,
+          finished: false,
+          error: 'Could not save result. Your entries are still here.',
+        ),
+      );
+      rethrow;
+    }
+  }
+}

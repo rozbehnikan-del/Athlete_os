@@ -49,4 +49,48 @@ void main() {
     );
     expect(startSize.height, FigmaV1Tokens.primaryButtonHeight);
   });
+
+  testWidgets('desktop Home stays compact and defaults to light on dark OS',
+      (tester) async {
+    tester.view.physicalSize = const Size(1440, 900);
+    tester.view.devicePixelRatio = 1;
+    tester.binding.platformDispatcher.platformBrightnessTestValue =
+        Brightness.dark;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(
+      tester.binding.platformDispatcher.clearPlatformBrightnessTestValue,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authRepositoryProvider.overrideWith((ref) => FakeAuthRepository()),
+          workoutRepositoryProvider.overrideWith(
+            (ref) => MockWorkoutRepository(),
+          ),
+        ],
+        child: const AthleteOSApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+
+    final greeting = find.text('Good morning, Ali');
+    expect(greeting, findsOneWidget);
+    expect(
+      Theme.of(tester.element(greeting)).brightness,
+      Brightness.light,
+    );
+
+    final button = find.byKey(const Key('home-start-workout'));
+    expect(button, findsOneWidget);
+    final buttonSize = tester.getSize(button);
+    expect(buttonSize.width, lessThan(520));
+    expect(buttonSize.width, greaterThan(300));
+    expect(buttonSize.height, 54);
+    expect(tester.takeException(), isNull);
+  });
+
 }

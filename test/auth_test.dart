@@ -267,7 +267,7 @@ void main() {
         expect(find.text("TODAY'S TRAINING"), findsOneWidget);
         expect(find.text('Good morning, User'), findsOneWidget);
       } else {
-        expect(find.text('Coach Home'), findsOneWidget);
+        expect(find.text('Good morning, Coach'), findsOneWidget);
         expect(find.text("Today's Workout"), findsNothing);
       }
     });

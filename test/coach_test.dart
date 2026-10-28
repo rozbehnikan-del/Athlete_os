@@ -136,7 +136,8 @@ void main() {
       );
       await tester.pumpWidget(screen(const CoachHomeScreen()));
       await tester.pumpAndSettle();
-      expect(find.text('My Athletes (1)'), findsOneWidget);
+      expect(find.text('Today'), findsOneWidget);
+      expect(find.textContaining('1 assigned athletes'), findsOneWidget);
       expect(find.text('Ali'), findsOneWidget);
       await tester.pumpWidget(
         screen(const CoachAthleteScreen(athleteId: 'athlete')),

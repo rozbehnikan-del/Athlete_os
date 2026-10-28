@@ -7,12 +7,9 @@ import '../../features/auth/domain/entities/auth_user.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/auth_welcome_screen.dart';
 
-import '../../features/care_team/presentation/screens/care_team_screen.dart';
-import '../../features/competition/presentation/screens/competition_screen.dart';
-import '../../features/health/presentation/screens/health_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/more/presentation/screens/more_screen.dart';
-import '../../features/nutrition/presentation/screens/nutrition_screen.dart';
+import '../../features/records/presentation/screens/records_screen.dart';
 import '../../features/progress/presentation/screens/progress_screen.dart';
 import '../../features/shell/athlete_app_shell.dart';
 import '../../features/training/presentation/screens/workout_screen.dart';
@@ -125,8 +122,8 @@ GoRouter createAppRouter({
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: AppRoutes.nutrition,
-                builder: (context, state) => const NutritionScreen(),
+                path: AppRoutes.records,
+                builder: (context, state) => const RecordsScreen(),
               ),
             ],
           ),
@@ -142,34 +139,6 @@ GoRouter createAppRouter({
             ],
           ),
         ],
-      ),
-      GoRoute(
-        path: AppRoutes.careTeam,
-        builder: (context, state) => const CareTeamScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.health,
-        builder: (context, state) => const HealthScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.competition,
-        builder: (context, state) => const CompetitionScreen(),
-      ),
-      GoRoute(
-        path: AppRoutes.profile,
-        builder: (context, state) => const PlaceholderScreen(title: 'Profile'),
-      ),
-      GoRoute(
-        path: AppRoutes.settings,
-        builder: (context, state) => const PlaceholderScreen(title: 'Settings'),
-      ),
-      GoRoute(
-        path: AppRoutes.records,
-        builder: (context, state) => const PlaceholderScreen(title: 'Records'),
-      ),
-      GoRoute(
-        path: AppRoutes.messages,
-        builder: (context, state) => const PlaceholderScreen(title: 'Messages'),
       ),
     ],
   );

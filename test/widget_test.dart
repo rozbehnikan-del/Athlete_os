@@ -105,6 +105,22 @@ void main() {
     );
   });
 
+  testWidgets('Records is a core destination and Nutrition is not', (tester) async {
+    await setMobileViewport(tester);
+    await tester.pumpWidget(testApp());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Get Started'));
+    await tester.pumpAndSettle();
+
+    expect(find.byIcon(Icons.restaurant_rounded), findsNothing);
+    await tester.tap(find.byIcon(Icons.workspace_premium_rounded).hitTestable());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Records'), findsWidgets);
+    expect(find.text('No performance records yet'), findsOneWidget);
+  });
+
   testWidgets('Start Workout navigates to workout session', (tester) async {
     await setMobileViewport(tester);
     await tester.pumpWidget(testApp());

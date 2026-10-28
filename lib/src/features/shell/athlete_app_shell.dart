@@ -38,7 +38,7 @@ class _AthleteAppShellState extends ConsumerState<AthleteAppShell> {
       _Destination(l.home, Icons.home_rounded),
       _Destination(l.progress, Icons.show_chart_rounded),
       _Destination(l.train, Icons.fitness_center_rounded, dark: true),
-      _Destination(l.nutrition, Icons.restaurant_rounded, dark: true),
+      const _Destination('Records', Icons.workspace_premium_rounded),
       _Destination(l.more, Icons.grid_view_rounded),
     ];
     final size = windowClassOf(context);

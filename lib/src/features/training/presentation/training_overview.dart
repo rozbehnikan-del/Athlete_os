@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../app/router/routes.dart';
-import '../../../../core/theme/figma_v1_tokens.dart';
-import '../../application/controllers/workout_controller.dart';
-import '../../domain/entities/crossfit.dart';
-import '../../domain/entities/workout.dart';
-import '../training_formatters.dart';
+import '../../../app/router/routes.dart';
+import '../../../core/theme/figma_v1_tokens.dart';
+import '../application/controllers/workout_controller.dart';
+import '../domain/entities/crossfit.dart';
+import '../domain/entities/workout.dart';
+import 'training_formatters.dart';
 
 /// Training overview: Figma CrossFit V1 / Athlete Mobile, node 2:41.
 class FigmaTrainingOverview extends ConsumerWidget {

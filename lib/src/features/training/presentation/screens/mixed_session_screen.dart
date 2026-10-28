@@ -45,7 +45,7 @@ class MixedSessionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 14),
             LinearProgressIndicator(
-              value: state.progress.clamp(0, 1),
+              value: state.progress.clamp(0.0, 1.0).toDouble(),
               color: AppColors.primaryGreen,
               backgroundColor: Colors.white12,
               minHeight: 8,

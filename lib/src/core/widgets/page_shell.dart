@@ -4,10 +4,17 @@ import '../responsive/responsive.dart';
 import '../theme/app_theme.dart';
 
 class PageShell extends StatelessWidget {
-  const PageShell({super.key, required this.child, this.dark = false});
+  const PageShell({
+    super.key,
+    required this.child,
+    this.dark = false,
+    this.padding,
+  });
 
   final Widget child;
   final bool dark;
+  /// Optional screen-specific spacing; other pages keep their existing padding.
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +29,7 @@ class PageShell extends StatelessWidget {
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxContentWidth(size)),
               child: SingleChildScrollView(
-                padding: EdgeInsets.all(
+                padding: padding ?? EdgeInsets.all(
                   size == WindowClass.compact ? AppSpacing.x4 : AppSpacing.x8,
                 ),
                 child: child,

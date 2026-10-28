@@ -56,7 +56,7 @@ class _SummaryRepository implements ProgressRepository {
 }
 
 void main() {
-  testWidgets('Home View Plan navigates and has no fake notification control', (
+  testWidgets('Home Start Workout navigates and has no fake notification control', (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -73,8 +73,8 @@ void main() {
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
     expect(find.byIcon(Icons.notifications_none_rounded), findsNothing);
-    await tester.ensureVisible(find.text('View Plan'));
-    await tester.tap(find.text('View Plan'));
+    await tester.ensureVisible(find.text('Start Workout'));
+    await tester.tap(find.text('Start Workout'));
     await tester.pumpAndSettle();
     expect(find.text('Coach target'), findsOneWidget);
   });

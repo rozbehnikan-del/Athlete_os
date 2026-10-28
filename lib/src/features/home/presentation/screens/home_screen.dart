@@ -3,281 +3,301 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../../l10n/app_localizations.dart';
-
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/athlete_avatar.dart';
-
-import '../../../../core/widgets/page_shell.dart';
-import '../../../../core/widgets/primary_button.dart';
-
 import '../../../../app/router/routes.dart';
-import '../../../training/application/controllers/workout_controller.dart';
-import '../../../training/domain/entities/workout.dart';
-import '../../../training/domain/entities/exercise_prescription.dart';
-import '../../../training/presentation/training_formatters.dart';
+import '../../../../core/theme/figma_v1_tokens.dart';
+import '../../../../core/widgets/page_shell.dart';
 import '../../../auth/application/auth_controller.dart';
+import '../../../training/application/controllers/workout_controller.dart';
+import '../../../training/domain/entities/crossfit.dart';
+import '../../../training/domain/entities/workout.dart';
+import '../../../training/presentation/training_formatters.dart';
 
+/// Figma: 02 — Athlete Mobile / Home (node 2:6).
+/// Visual values come from the V1 foundations. Session data stays API-driven.
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l = AppLocalizations.of(context)!;
+    final locale = Localizations.localeOf(context);
     final user = ref.watch(authControllerProvider).asData?.value;
+    final name = user?.fullName.trim() ?? '';
+    final firstName = name.isEmpty ? '' : name.split(RegExp(r'\s+')).first;
+    final greeting = locale.languageCode == 'en'
+        ? 'Good morning'
+        : l.goodMorning;
+    final heading = firstName.isEmpty ? greeting : '$greeting, $firstName';
+    final scheme = Theme.of(context).colorScheme;
+    final now = DateTime.now();
 
     return PageShell(
+      padding: const EdgeInsets.fromLTRB(20, 54, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              AthleteAvatar(
-                label: user == null || user.fullName.isEmpty
-                    ? ''
-                    : user.fullName.substring(0, 1),
-                size: 58,
-                showBorder: false,
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.goodMorning,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    Text(
-                      user?.fullName ?? '',
-                      style: Theme.of(context).textTheme.headlineLarge
-                          ?.copyWith(fontSize: 28, height: 1.05),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Text(
+            heading,
+            key: const Key('home-greeting'),
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+              color: scheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            locale.languageCode == 'en'
+                ? _englishDate(now)
+                : MaterialLocalizations.of(context).formatMediumDate(now),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.3,
+              color: scheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 18),
-          const _DateSelector(),
+          _TodayTrainingCard(
+            sectionTitle: locale.languageCode == 'en'
+                ? "TODAY'S TRAINING"
+                : l.todaysWorkout,
+            startLabel: l.startWorkout,
+          ),
           const SizedBox(height: 18),
-          const _TodayWorkoutCard(),
-          const SizedBox(height: 26),
+          const _LatestSignalCard(),
         ],
       ),
     );
   }
 }
 
-class _DateSelector extends StatelessWidget {
-  const _DateSelector();
-
-  @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final monday = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    ).subtract(Duration(days: now.weekday - 1));
-    final days = List.generate(7, (i) {
-      final date = monday.add(Duration(days: i));
-      return MaterialLocalizations.of(context).formatShortDate(date);
-    });
-    return SizedBox(
-      height: 62,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: days.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 10),
-        itemBuilder: (_, i) => Container(
-          width: 52,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: i == now.weekday - 1
-                ? Theme.of(context).colorScheme.primary
-                : Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(AppRadii.md),
-            border: Border.all(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-          ),
-          child: Text(
-            days[i],
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: i == now.weekday - 1
-                  ? Theme.of(context).colorScheme.onPrimary
-                  : Theme.of(context).colorScheme.onSurface,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+String _englishDate(DateTime date) {
+  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday',
+    'Friday', 'Saturday', 'Sunday'];
+  const months = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+  return '${days[date.weekday - 1]} · ${months[date.month - 1]} ${date.day}';
 }
 
-class _TodayWorkoutCard extends ConsumerWidget {
-  const _TodayWorkoutCard();
+class _TodayTrainingCard extends ConsumerWidget {
+  const _TodayTrainingCard({
+    required this.sectionTitle,
+    required this.startLabel,
+  });
+
+  final String sectionTitle;
+  final String startLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final l = AppLocalizations.of(context)!;
     final workout = ref.watch(workoutControllerProvider);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(AppRadii.xl),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
+    final scheme = Theme.of(context).colorScheme;
+
+    return _V1Card(
+      padding: const EdgeInsets.all(18),
       child: workout.when(
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stackTrace) =>
-            Text('$error', style: const TextStyle(color: AppColors.red)),
-        data: (workout) => workout == null
-            ? Text(
-                'No active workout today',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w700,
-                ),
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        error: (error, _) => Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _SectionEyebrow(sectionTitle),
+            const SizedBox(height: 8),
+            Text('Could not load today’s training.',
+                style: TextStyle(color: scheme.error)),
+            TextButton(
+              onPressed: () => ref.invalidate(workoutControllerProvider),
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+        data: (session) {
+          if (session == null) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SectionEyebrow(sectionTitle),
+                const SizedBox(height: 6),
+                Text('No training assigned today',
+                    style: TextStyle(fontSize: 20,
+                        fontWeight: FontWeight.w700, color: scheme.onSurface)),
+                const SizedBox(height: 10),
+                Text('Your next coach-programmed session will appear here.',
+                    style: TextStyle(fontSize: 13,
+                        color: scheme.onSurfaceVariant)),
+              ],
+            );
+          }
+          final overview = _trainingOverview(session);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 10,
+                runSpacing: 6,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l.todaysWorkout,
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                            if (workout.title != l.todaysWorkout)
-                              Text(
-                                workout.title,
-                                style: Theme.of(context).textTheme.titleMedium,
-                              ),
-                            if (_workoutMetadata(workout).isNotEmpty)
-                              Text(
-                                _workoutMetadata(workout),
-                                style: TextStyle(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () =>
-                            context.go(AppRoutes.workoutPath(workout.id)),
-                        child: Text(
-                          l.viewPlan,
-                          style: const TextStyle(fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: Column(
-                          children: [
-                            for (var i = 0; i < workout.exercises.length; i++)
-                              _ExerciseLine(exercise: workout.exercises[i]),
-                          ],
-                        ),
-                      ),
+                      _SectionEyebrow(sectionTitle),
+                      const SizedBox(height: 4),
+                      Text(session.title,
+                        key: const Key('home-training-title'),
+                        style: TextStyle(fontSize: 20,
+                          fontWeight: FontWeight.w700, height: 1.2,
+                          color: scheme.onSurface)),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: PrimaryButton(
-                      label: l.startWorkout,
-                      icon: Icons.arrow_forward_rounded,
-                      onPressed: () =>
-                          context.go(AppRoutes.workoutPath(workout.id)),
-                    ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: FigmaV1Tokens.successSurface,
+                      borderRadius: BorderRadius.circular(99)),
+                    child: const Text('READY', style: TextStyle(
+                      color: FigmaV1Tokens.success,
+                      fontSize: 11, fontWeight: FontWeight.w700)),
                   ),
                 ],
               ),
+              const SizedBox(height: 10),
+              for (var i = 0; i < overview.length; i++) ...[
+                Text(overview[i],
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: i == 0 ? 14 : 13,
+                    fontWeight: i == 0 ? FontWeight.w700 : FontWeight.w400,
+                    color: i == 0 ? scheme.onSurface : scheme.onSurfaceVariant,
+                    height: 1.3)),
+                if (i < overview.length - 1) const SizedBox(height: 8),
+              ],
+              const SizedBox(height: 10),
+              SizedBox(
+                key: const Key('home-start-workout'),
+                width: double.infinity,
+                height: FigmaV1Tokens.primaryButtonHeight,
+                child: FilledButton(
+                  onPressed: () => context.go(AppRoutes.workoutPath(session.id)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: scheme.primary,
+                    foregroundColor: scheme.onPrimary,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        FigmaV1Tokens.primaryButtonRadius)),
+                  ),
+                  child: Text(startLabel, style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.w700)),
+                ),
+              ),
+            ],
+          );
+        },
       ),
     );
   }
 }
 
-String _workoutMetadata(Workout workout) {
-  final category = workout.category.trim();
-  final focus = workout.focus.trim();
-  if (category.isEmpty) {
-    return focus;
+List<String> _trainingOverview(Workout workout) {
+  final lines = <String>[];
+  if (workout.exercises.isNotEmpty) {
+    final first = workout.exercises.first;
+    final detail = exercisePrescriptionDetail(first);
+    lines.add('A. ${first.name}${detail.isEmpty ? '' : ' · $detail'}');
   }
-  if (focus.isEmpty) {
-    return category;
+
+  for (final block in workout.session?.blocks ?? const <TrainingBlock>[]) {
+    final wod = block.wod;
+    if (wod == null) continue;
+    final duration = wod.durationSeconds == null
+        ? ''
+        : '${wod.durationSeconds! ~/ 60} min ';
+    final format = switch (wod.format) {
+      WodFormat.forTime => 'For Time',
+      WodFormat.amrap => 'AMRAP',
+      WodFormat.emom => 'EMOM',
+      WodFormat.roundsForTime => 'Rounds for Time',
+      WodFormat.chipper => 'Chipper',
+      WodFormat.intervals => 'Intervals',
+      WodFormat.maxLoad => 'Max Load',
+      WodFormat.maxReps => 'Max Reps',
+      WodFormat.calories => 'Calories',
+      WodFormat.distance => 'Distance',
+      WodFormat.tabata => 'Tabata',
+      WodFormat.custom => 'WOD',
+    };
+    lines.add('${String.fromCharCode(65 + lines.length)}. $duration$format · ${block.title}');
+    break;
   }
-  return '$category ($focus)';
+
+  for (final exercise in workout.exercises.skip(1)) {
+    if (lines.length >= 2) break;
+    final detail = exercisePrescriptionDetail(exercise);
+    lines.add('${String.fromCharCode(65 + lines.length)}. ${exercise.name}${detail.isEmpty ? '' : ' · $detail'}');
+  }
+  if (lines.isEmpty && workout.focus.trim().isNotEmpty) {
+    lines.add(workout.focus.trim());
+  }
+  return lines.take(2).toList();
 }
 
-class _ExerciseLine extends StatelessWidget {
-  const _ExerciseLine({required this.exercise});
-
-  final ExercisePrescription exercise;
+class _LatestSignalCard extends StatelessWidget {
+  const _LatestSignalCard();
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
+    final scheme = Theme.of(context).colorScheme;
+    return _V1Card(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: SizedBox(
-              width: 52,
-              height: 52,
-              child: Image.asset(
-                exerciseImagePath(exercise.exerciseSlug),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  exercise.name,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  exercisePrescriptionDetail(exercise),
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const _SectionEyebrow('Latest signal', fontSize: 12),
+          const SizedBox(height: 10),
+          Text('Your performance signals will appear here',
+            style: TextStyle(color: scheme.onSurface,
+                fontSize: 16, fontWeight: FontWeight.w700, height: 1.25)),
+          const SizedBox(height: 10),
+          Text('Training trends need verified, comparable results.',
+            style: TextStyle(fontSize: 13, color: scheme.onSurfaceVariant)),
         ],
       ),
+    );
+  }
+}
+
+class _SectionEyebrow extends StatelessWidget {
+  const _SectionEyebrow(this.label, {this.fontSize = 11});
+
+  final String label;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) => Text(label,
+    style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant,
+      fontSize: fontSize, fontWeight: FontWeight.w700));
+}
+
+class _V1Card extends StatelessWidget {
+  const _V1Card({required this.child, required this.padding});
+
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(FigmaV1Tokens.cardRadius),
+      ),
+      child: child,
     );
   }
 }

@@ -210,9 +210,9 @@ void main() {
       await openApp(tester, authenticated: true);
       await tester.tap(find.text('Get Started'));
       await tester.pumpAndSettle();
-      expect(find.text("Today's Workout"), findsOneWidget);
+      expect(find.text("TODAY'S TRAINING"), findsOneWidget);
       expect(
-        Theme.of(tester.element(find.text('Good Morning'))).brightness,
+        Theme.of(tester.element(find.text('Good morning, Ali'))).brightness,
         Brightness.dark,
       );
       await tester.tap(find.byIcon(Icons.fitness_center_rounded).hitTestable());

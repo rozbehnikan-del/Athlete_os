@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/figma_v1_tokens.dart';
+import '../figma_score_counter.dart';
 import '../../../../core/widgets/page_shell.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/status_badge.dart';
@@ -38,36 +40,44 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
   Widget build(BuildContext context) {
     final asyncState = ref.watch(mixedSessionControllerProvider(widget.workoutId));
 
-    return PageShell(
-      dark: true,
-      child: asyncState.when(
+    return Theme(
+      data: AppTheme.light,
+      child: PageShell(
+        maxWidth: 560,
+        padding: const EdgeInsets.fromLTRB(20, 54, 20, 20),
+        child: asyncState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
-            Text(error.toString(), style: const TextStyle(color: Colors.white)),
+            Text(error.toString(), style: const TextStyle(color: FigmaV1Tokens.text)),
         data: (state) {
           final block = state.currentBlock;
+          final wod = block.wod;
+          final headerTitle = wod?.format == WodFormat.amrap &&
+                  wod?.durationSeconds != null
+              ? 'AMRAP ${wod!.durationSeconds! ~/ 60}'
+              : state.workout.title;
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                state.workout.title,
+                headerTitle,
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: Colors.white,
+                      color: FigmaV1Tokens.text,
                     ),
               ),
               const SizedBox(height: 6),
               Text(
                 'Block ${state.currentBlockIndex + 1} of ${state.blocks.length}',
                 style: const TextStyle(
-                  color: Colors.white60,
+                  color: FigmaV1Tokens.muted,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 14),
               LinearProgressIndicator(
                 value: state.progress.clamp(0.0, 1.0).toDouble(),
-                color: AppColors.primaryGreen,
-                backgroundColor: Colors.white12,
+                color: FigmaV1Tokens.success,
+                backgroundColor: FigmaV1Tokens.border,
                 minHeight: 8,
                 borderRadius: BorderRadius.circular(99),
               ),
@@ -175,8 +185,8 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
               if (state.finished)
                 const StatusBadge(
                   label: 'SESSION SAVED',
-                  color: AppColors.primaryGreen,
-                  dark: true,
+                  color: FigmaV1Tokens.success,
+                  dark: false,
                   icon: Icons.check_rounded,
                 )
               else
@@ -238,6 +248,7 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
             ],
           );
         },
+        ),
       ),
     );
   }
@@ -354,10 +365,11 @@ class _BlockHeader extends StatelessWidget {
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: AppColors.darkSurface,
+            color: FigmaV1Tokens.surface,
+            border: Border.all(color: FigmaV1Tokens.border),
             borderRadius: BorderRadius.circular(AppRadii.md),
           ),
-          child: Icon(_blockIcon(block.type), color: Colors.white),
+          child: Icon(_blockIcon(block.type), color: FigmaV1Tokens.text),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -367,7 +379,7 @@ class _BlockHeader extends StatelessWidget {
               Text(
                 _blockTypeLabel(block.type).toUpperCase(),
                 style: const TextStyle(
-                  color: Colors.white54,
+                  color: FigmaV1Tokens.muted,
                   fontSize: 11,
                   fontWeight: FontWeight.w900,
                 ),
@@ -375,7 +387,7 @@ class _BlockHeader extends StatelessWidget {
               Text(
                 block.title,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: FigmaV1Tokens.text,
                   fontSize: 24,
                   fontWeight: FontWeight.w900,
                 ),
@@ -383,7 +395,7 @@ class _BlockHeader extends StatelessWidget {
               if (block.coachNote != null)
                 Text(
                   block.coachNote!,
-                  style: const TextStyle(color: Colors.white70),
+                  style: const TextStyle(color: FigmaV1Tokens.muted),
                 ),
             ],
           ),
@@ -405,13 +417,14 @@ class _InstructionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
+        color: FigmaV1Tokens.surface,
+        border: Border.all(color: FigmaV1Tokens.border),
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
       child: prescription.isEmpty
           ? const Text(
               'Follow the coach instructions for this block.',
-              style: TextStyle(color: Colors.white70),
+              style: TextStyle(color: FigmaV1Tokens.muted),
             )
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -420,7 +433,7 @@ class _InstructionCard extends StatelessWidget {
                   Text(
                     _prettyKey(entry.key),
                     style: const TextStyle(
-                      color: Colors.white54,
+                      color: FigmaV1Tokens.muted,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -455,7 +468,7 @@ class _PrescriptionValue extends StatelessWidget {
                         .join('  •  ')
                     : '• $item',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: FigmaV1Tokens.text,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -466,7 +479,7 @@ class _PrescriptionValue extends StatelessWidget {
     return Text(
       '$value',
       style: const TextStyle(
-        color: Colors.white,
+        color: FigmaV1Tokens.text,
         fontWeight: FontWeight.w800,
       ),
     );
@@ -499,7 +512,8 @@ class _StrengthCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
+        color: FigmaV1Tokens.surface,
+        border: Border.all(color: FigmaV1Tokens.border),
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
       child: Column(
@@ -508,7 +522,7 @@ class _StrengthCard extends StatelessWidget {
           Text(
             exercise.name,
             style: const TextStyle(
-              color: Colors.white,
+              color: FigmaV1Tokens.text,
               fontSize: 20,
               fontWeight: FontWeight.w900,
             ),
@@ -517,7 +531,7 @@ class _StrengthCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               exercise.coachingNote!,
-              style: const TextStyle(color: Colors.white70),
+              style: const TextStyle(color: FigmaV1Tokens.muted),
             ),
           ],
           const SizedBox(height: 14),
@@ -535,7 +549,7 @@ class _StrengthCard extends StatelessWidget {
                           child: Text(
                             'Set ${set.setNumber}',
                             style: const TextStyle(
-                              color: Colors.white,
+                              color: FigmaV1Tokens.text,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -544,7 +558,7 @@ class _StrengthCard extends StatelessWidget {
                           child: TextFormField(
                             initialValue: draft.repsInput,
                             keyboardType: TextInputType.number,
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: FigmaV1Tokens.text),
                             decoration: const InputDecoration(labelText: 'Reps'),
                             onChanged: (value) => onChanged(key, reps: value),
                           ),
@@ -556,7 +570,7 @@ class _StrengthCard extends StatelessWidget {
                             keyboardType: const TextInputType.numberWithOptions(
                               decimal: true,
                             ),
-                            style: const TextStyle(color: Colors.white),
+                            style: const TextStyle(color: FigmaV1Tokens.text),
                             decoration: InputDecoration(
                               labelText: draft.weightUnit?.name ?? 'Weight',
                             ),
@@ -570,7 +584,7 @@ class _StrengthCard extends StatelessWidget {
                         Expanded(
                           child: DropdownButtonFormField<double?>(
                             initialValue: draft.rpe,
-                            dropdownColor: AppColors.darkSurface,
+                            dropdownColor: FigmaV1Tokens.surface,
                             decoration: const InputDecoration(labelText: 'RPE'),
                             items: [
                               const DropdownMenuItem<double?>(
@@ -594,7 +608,7 @@ class _StrengthCard extends StatelessWidget {
                             contentPadding: EdgeInsets.zero,
                             title: const Text(
                               'Completed',
-                              style: TextStyle(color: Colors.white70),
+                              style: TextStyle(color: FigmaV1Tokens.muted),
                             ),
                             value: draft.completed,
                             onChanged: (value) =>
@@ -604,7 +618,7 @@ class _StrengthCard extends StatelessWidget {
                       ],
                     ),
                     if (set != exercise.sets.last)
-                      const Divider(color: Colors.white12),
+                      const Divider(color: FigmaV1Tokens.border),
                   ],
                 );
               },
@@ -662,7 +676,7 @@ class _WodCard extends StatelessWidget {
       return TextFormField(
         initialValue: value,
         keyboardType: keyboard ?? TextInputType.number,
-        style: const TextStyle(color: Colors.white),
+        style: const TextStyle(color: FigmaV1Tokens.text),
         decoration: InputDecoration(labelText: label),
         onChanged: changed,
       );
@@ -672,7 +686,8 @@ class _WodCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.darkSurface,
+        color: FigmaV1Tokens.surface,
+        border: Border.all(color: FigmaV1Tokens.border),
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
       child: Column(
@@ -691,7 +706,7 @@ class _WodCard extends StatelessWidget {
           if (wod.scalingOptions.isNotEmpty)
             DropdownButtonFormField<ScalingLevel>(
               initialValue: draft.scaling,
-              dropdownColor: AppColors.darkSurface,
+              dropdownColor: FigmaV1Tokens.surface,
               decoration: const InputDecoration(labelText: 'Scaling'),
               items: [
                 for (final scaling in wod.scalingOptions)
@@ -714,24 +729,16 @@ class _WodCard extends StatelessWidget {
                 ),
               ],
             WodScoreType.roundsReps => [
-                Row(
-                  children: [
-                    Expanded(
-                      child: field(
-                        'Rounds',
-                        draft.primaryInput,
-                        (value) => onChanged(primary: value),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: field(
-                        'Extra reps',
-                        draft.secondaryInput,
-                        (value) => onChanged(secondary: value),
-                      ),
-                    ),
-                  ],
+                field(
+                  'Rounds',
+                  draft.primaryInput,
+                  (value) => onChanged(primary: value),
+                ),
+                const SizedBox(height: 16),
+                FigmaScoreCounter(
+                  label: 'Extra reps',
+                  value: int.tryParse(draft.secondaryInput) ?? 0,
+                  onChanged: (value) => onChanged(secondary: '$value'),
                 ),
               ],
             WodScoreType.load => [
@@ -759,7 +766,7 @@ class _WodCard extends StatelessWidget {
                         initialValue: const {'kg', 'lb'}.contains(draft.unit)
                             ? draft.unit
                             : 'kg',
-                        dropdownColor: AppColors.darkSurface,
+                        dropdownColor: FigmaV1Tokens.surface,
                         decoration: const InputDecoration(labelText: 'Unit'),
                         items: const [
                           DropdownMenuItem(value: 'kg', child: Text('kg')),
@@ -774,10 +781,10 @@ class _WodCard extends StatelessWidget {
                 ),
               ],
             WodScoreType.reps => [
-                field(
-                  'Reps',
-                  draft.primaryInput,
-                  (value) => onChanged(primary: value),
+                FigmaScoreCounter(
+                  label: 'Reps',
+                  value: int.tryParse(draft.primaryInput) ?? 0,
+                  onChanged: (value) => onChanged(primary: '$value'),
                 ),
               ],
             WodScoreType.calories => [
@@ -799,7 +806,7 @@ class _WodCard extends StatelessWidget {
                   initialValue: const {'m', 'km', 'mi'}.contains(draft.unit)
                       ? draft.unit
                       : 'm',
-                  dropdownColor: AppColors.darkSurface,
+                  dropdownColor: FigmaV1Tokens.surface,
                   decoration: const InputDecoration(labelText: 'Distance unit'),
                   items: const [
                     DropdownMenuItem(value: 'm', child: Text('m')),
@@ -834,7 +841,7 @@ class _WodCard extends StatelessWidget {
             WodScoreType.none => [
                 const Text(
                   'No numeric score required.',
-                  style: TextStyle(color: Colors.white70),
+                  style: TextStyle(color: FigmaV1Tokens.muted),
                 ),
               ],
           },
@@ -843,7 +850,7 @@ class _WodCard extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               title: const Text(
                 'DNF / time cap reached',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(color: FigmaV1Tokens.text),
               ),
               value: draft.dnf,
               onChanged: (value) => onChanged(dnf: value),
@@ -851,7 +858,7 @@ class _WodCard extends StatelessWidget {
           const SizedBox(height: 8),
           DropdownButtonFormField<double?>(
             initialValue: draft.rpe,
-            dropdownColor: AppColors.darkSurface,
+            dropdownColor: FigmaV1Tokens.surface,
             decoration: const InputDecoration(labelText: 'RPE'),
             items: [
               const DropdownMenuItem<double?>(
@@ -871,7 +878,7 @@ class _WodCard extends StatelessWidget {
           const SizedBox(height: 10),
           TextFormField(
             initialValue: draft.notes,
-            style: const TextStyle(color: Colors.white),
+            style: const TextStyle(color: FigmaV1Tokens.text),
             decoration: const InputDecoration(labelText: 'Athlete note'),
             onChanged: (value) => onChanged(notes: value),
           ),
@@ -913,7 +920,7 @@ class _EmomMinuteScores extends StatelessWidget {
       children: [
         const Text(
           'EMOM • RESULTS BY MINUTE',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+          style: TextStyle(color: FigmaV1Tokens.text, fontWeight: FontWeight.w800),
         ),
         const SizedBox(height: 8),
         for (var index = 0; index < targets.length; index++) ...[
@@ -925,8 +932,8 @@ class _EmomMinuteScores extends StatelessWidget {
                   'Minute ${index + 1}',
                   style: TextStyle(
                     color: currentMinute == index + 1
-                        ? AppColors.primaryGreen
-                        : Colors.white70,
+                        ? FigmaV1Tokens.success
+                        : FigmaV1Tokens.muted,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -934,7 +941,7 @@ class _EmomMinuteScores extends StatelessWidget {
               Expanded(
                 child: Text(
                   targets[index],
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: FigmaV1Tokens.text),
                 ),
               ),
               const SizedBox(width: 8),
@@ -944,7 +951,7 @@ class _EmomMinuteScores extends StatelessWidget {
                   key: ValueKey('emom-result-$index'),
                   initialValue: index < values.length ? values[index].trim() : '',
                   keyboardType: TextInputType.number,
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: FigmaV1Tokens.text),
                   decoration: const InputDecoration(labelText: 'Actual'),
                   onChanged: (input) => changeMinute(index, input),
                 ),
@@ -995,7 +1002,7 @@ class _MaxLoadAttempts extends StatelessWidget {
             const Expanded(
               child: Text(
                 'MAX LOAD ATTEMPTS',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+                style: TextStyle(color: FigmaV1Tokens.text, fontWeight: FontWeight.w800),
               ),
             ),
             SizedBox(
@@ -1003,7 +1010,7 @@ class _MaxLoadAttempts extends StatelessWidget {
               child: DropdownButtonFormField<String>(
                 initialValue: const {'kg', 'lb'}.contains(draft.unit) ? draft.unit : 'kg',
                 decoration: const InputDecoration(labelText: 'Unit'),
-                dropdownColor: AppColors.darkSurface,
+                dropdownColor: FigmaV1Tokens.surface,
                 items: const [
                   DropdownMenuItem(value: 'kg', child: Text('kg')),
                   DropdownMenuItem(value: 'lb', child: Text('lb')),
@@ -1024,7 +1031,7 @@ class _MaxLoadAttempts extends StatelessWidget {
                   key: ValueKey('load-attempt-${draft.loadAttempts[index].id}'),
                   initialValue: draft.loadAttempts[index].loadInput,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: const TextStyle(color: Colors.white),
+                  style: const TextStyle(color: FigmaV1Tokens.text),
                   decoration: InputDecoration(labelText: 'Attempt ${index + 1} (${draft.unit})'),
                   onChanged: (input) => _update(
                     index,
@@ -1071,7 +1078,7 @@ class _MaxLoadAttempts extends StatelessWidget {
           best == null
               ? 'Record a successful attempt to set a best load.'
               : 'Best successful load: $best ${draft.unit}',
-          style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w700),
+          style: const TextStyle(color: FigmaV1Tokens.success, fontWeight: FontWeight.w700),
         ),
       ],
     );
@@ -1104,7 +1111,8 @@ class _TimerPanel extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.darkCard,
+        color: FigmaV1Tokens.surface,
+        border: Border.all(color: FigmaV1Tokens.border),
         borderRadius: BorderRadius.circular(AppRadii.lg),
       ),
       child: Row(
@@ -1115,7 +1123,7 @@ class _TimerPanel extends StatelessWidget {
               Text(
                 label,
                 style: const TextStyle(
-                  color: Colors.white70,
+                  color: FigmaV1Tokens.muted,
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -1123,7 +1131,7 @@ class _TimerPanel extends StatelessWidget {
               Text(
                 '$minutes:${remainder.toString().padLeft(2, '0')}',
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: FigmaV1Tokens.text,
                   fontSize: 38,
                   fontWeight: FontWeight.w900,
                   letterSpacing: 1.5,

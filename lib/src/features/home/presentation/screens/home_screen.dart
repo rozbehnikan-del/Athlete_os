@@ -77,8 +77,7 @@ String _englishDate(DateTime date) {
     'Friday', 'Saturday', 'Sunday'];
   const months = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
-  return days[date.weekday - 1] + ' · ' + months[date.month - 1] +
-      ' ' + date.day.toString();
+  return '${days[date.weekday - 1]} · ${months[date.month - 1]} ${date.day}';
 }
 
 class _TodayTrainingCard extends ConsumerWidget {
@@ -206,14 +205,15 @@ List<String> _trainingOverview(Workout workout) {
   if (workout.exercises.isNotEmpty) {
     final first = workout.exercises.first;
     final detail = exercisePrescriptionDetail(first);
-    lines.add('A. ' + first.name + (detail.isEmpty ? '' : ' · ' + detail));
+    lines.add('A. ${first.name}${detail.isEmpty ? '' : ' · $detail'}');
   }
 
   for (final block in workout.session?.blocks ?? const <TrainingBlock>[]) {
     final wod = block.wod;
     if (wod == null) continue;
-    final duration = wod.durationSeconds == null ? '' :
-        (wod.durationSeconds! ~/ 60).toString() + ' min ';
+    final duration = wod.durationSeconds == null
+        ? ''
+        : '${wod.durationSeconds! ~/ 60} min ';
     final format = switch (wod.format) {
       WodFormat.forTime => 'For Time',
       WodFormat.amrap => 'AMRAP',
@@ -228,16 +228,14 @@ List<String> _trainingOverview(Workout workout) {
       WodFormat.tabata => 'Tabata',
       WodFormat.custom => 'WOD',
     };
-    lines.add(String.fromCharCode(65 + lines.length) + '. ' +
-        duration + format + ' · ' + block.title);
+    lines.add('${String.fromCharCode(65 + lines.length)}. $duration$format · ${block.title}');
     break;
   }
 
   for (final exercise in workout.exercises.skip(1)) {
     if (lines.length >= 2) break;
     final detail = exercisePrescriptionDetail(exercise);
-    lines.add(String.fromCharCode(65 + lines.length) + '. ' + exercise.name +
-        (detail.isEmpty ? '' : ' · ' + detail));
+    lines.add('${String.fromCharCode(65 + lines.length)}. ${exercise.name}${detail.isEmpty ? '' : ' · $detail'}');
   }
   if (lines.isEmpty && workout.focus.trim().isNotEmpty) {
     lines.add(workout.focus.trim());

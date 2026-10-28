@@ -26,7 +26,7 @@ class CrossFitSessionAssignment {
     'focus': focus,
     'coach_notes': coachNotes,
     'scheduled_for':
-        '\${date.year.toString().padLeft(4, '0')}-\${date.month.toString().padLeft(2, '0')}-\${date.day.toString().padLeft(2, '0')}',
+        '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}',
     'exercises': [
       for (var i = 0; i < exercises.length; i++)
         exercises[i].toJson(i + 1),

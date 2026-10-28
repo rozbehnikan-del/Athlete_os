@@ -147,7 +147,7 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
                               crossFitSessionControllerProvider(workoutId)
                                   .notifier,
                             )
-                            .update(
+                            .updateDraft(
                               block.wod!.id,
                               scaling: scaling,
                               primaryInput: primary,
@@ -283,12 +283,12 @@ class _BlockCard extends StatelessWidget {
                 StatusBadge(label: _scoreLabel(wod.scoreType), dark: true),
                 if (wod.durationSeconds != null)
                   StatusBadge(
-                    label: (wod.durationSeconds! ~/ 60).toString() + ' MIN',
+                    label: '\${wod.durationSeconds! ~/ 60} MIN',
                     dark: true,
                   ),
                 if (wod.timeCapSeconds != null)
                   StatusBadge(
-                    label: 'CAP ' + _duration(wod.timeCapSeconds!),
+                    label: 'CAP \${_duration(wod.timeCapSeconds!)}',
                     dark: true,
                   ),
               ],
@@ -296,7 +296,7 @@ class _BlockCard extends StatelessWidget {
             const SizedBox(height: 16),
             if (wod.scalingOptions.isNotEmpty)
               DropdownButtonFormField<ScalingLevel>(
-                initialValue: draft.scaling,
+                initialValue: draft!.scaling,
                 dropdownColor: AppColors.darkSurface,
                 decoration: const InputDecoration(labelText: 'Scaling'),
                 items: [
@@ -311,7 +311,7 @@ class _BlockCard extends StatelessWidget {
                 },
               ),
             const SizedBox(height: 12),
-            ..._scoreFields(wod, draft),
+            ..._scoreFields(wod, draft!),
             if (wod.timeCapSeconds != null) ...[
               const SizedBox(height: 8),
               SwitchListTile(
@@ -320,13 +320,13 @@ class _BlockCard extends StatelessWidget {
                   'DNF / time cap reached',
                   style: TextStyle(color: Colors.white),
                 ),
-                value: draft.dnf,
+                value: draft!.dnf,
                 onChanged: (value) => onChanged!(dnf: value),
               ),
             ],
             const SizedBox(height: 8),
             DropdownButtonFormField<double?>(
-              initialValue: draft.rpe,
+              initialValue: draft!.rpe,
               dropdownColor: AppColors.darkSurface,
               decoration: const InputDecoration(labelText: 'RPE'),
               items: [
@@ -346,7 +346,7 @@ class _BlockCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             TextFormField(
-              initialValue: draft.notes,
+              initialValue: draft!.notes,
               style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(labelText: 'Athlete note'),
               onChanged: (value) => onChanged!(notes: value),
@@ -505,7 +505,7 @@ class _BlockCard extends StatelessWidget {
   static String _duration(int seconds) {
     final minutes = seconds ~/ 60;
     final rest = seconds % 60;
-    return minutes.toString() + ':' + rest.toString().padLeft(2, '0');
+    return '\$minutes:\${rest.toString().padLeft(2, '0')}';
   }
 }
 

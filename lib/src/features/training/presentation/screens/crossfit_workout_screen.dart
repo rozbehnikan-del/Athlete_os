@@ -7,7 +7,6 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../../core/widgets/status_badge.dart';
 import '../../application/controllers/crossfit_session_controller.dart';
 import '../../domain/entities/crossfit.dart';
-import '../../domain/entities/workout.dart';
 import 'mixed_session_screen.dart';
 import 'workout_screen.dart';
 

@@ -903,7 +903,7 @@ class _TimerPanel extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            '${minutes}:${remainder.toString().padLeft(2, '0')}',
+            '$minutes:${remainder.toString().padLeft(2, '0')}',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 38,

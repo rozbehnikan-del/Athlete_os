@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../progress/application/progress_providers.dart';
 import '../../domain/entities/crossfit.dart';
@@ -6,6 +7,7 @@ import '../../domain/entities/exercise_set.dart';
 import '../../domain/entities/workout.dart';
 import '../../domain/entities/workout_result.dart';
 import '../workout_providers.dart';
+import '../drafts/mixed_session_draft_codec.dart';
 import 'crossfit_session_controller.dart';
 import 'workout_controller.dart';
 import 'workout_session_controller.dart';
@@ -75,6 +77,9 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
   MixedSessionController(this.workoutId);
 
   final String workoutId;
+  Future<void> _draftWrites = Future<void>.value();
+
+  String get _draftKey => 'athleteos.mixed_session.v1.$workoutId';
 
   @override
   Future<MixedSessionState> build() async {
@@ -112,17 +117,66 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
         ),
     };
 
-    return MixedSessionState(
+    final initial = MixedSessionState(
       workout: workout,
       setDrafts: Map.unmodifiable(setDrafts),
       wodDrafts: Map.unmodifiable(wodDrafts),
     );
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final recovered = MixedSessionDraftCodec.restore(
+        prefs.getString(_draftKey),
+        workoutId: workoutId,
+        sets: initial.setDrafts,
+        wods: initial.wodDrafts,
+        blockIds: [for (final block in initial.blocks) block.id],
+      );
+      if (recovered == null) return initial;
+      return initial.copyWith(
+        setDrafts: recovered.sets,
+        wodDrafts: recovered.wods,
+        currentBlockIndex: recovered.blockIndex,
+        completedBlockIds: recovered.completedBlockIds,
+      );
+    } catch (_) {
+      return initial;
+    }
+  }
+
+  void _commitDraft(MixedSessionState updated) {
+    _commitDraft(updated);
+    final encoded = MixedSessionDraftCodec.encode(
+      workoutId: workoutId,
+      sets: updated.setDrafts,
+      wods: updated.wodDrafts,
+      blockIndex: updated.currentBlockIndex,
+      completedBlockIds: updated.completedBlockIds,
+    );
+    _draftWrites = _draftWrites.then((_) async {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_draftKey, encoded);
+      } catch (_) {
+        // A local storage failure must not erase in-memory athlete entries.
+      }
+    });
+  }
+
+  Future<void> _clearDraft() async {
+    try {
+      await _draftWrites;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_draftKey);
+    } catch (_) {
+      // Successful server submission is authoritative even if cleanup fails.
+    }
   }
 
   void previousBlock() {
     final current = state.requireValue;
     if (current.isFirstBlock) return;
-    state = AsyncData(
+    _commitDraft(
       current.copyWith(
         currentBlockIndex: current.currentBlockIndex - 1,
         clearError: true,
@@ -138,7 +192,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       final wod = block.wod!;
       final result = current.wodDrafts[wod.id]?.toResult(wod);
       if (result == null) {
-        state = AsyncData(
+        _commitDraft(
           current.copyWith(
             error: 'Enter a valid score before completing this WOD block.',
           ),
@@ -152,7 +206,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
         ? current.currentBlockIndex
         : current.currentBlockIndex + 1;
 
-    state = AsyncData(
+    _commitDraft(
       current.copyWith(
         currentBlockIndex: nextIndex,
         completedBlockIds: Set.unmodifiable(completed),
@@ -165,7 +219,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
   void goToBlock(int index) {
     final current = state.requireValue;
     if (index < 0 || index >= current.blocks.length) return;
-    state = AsyncData(
+    _commitDraft(
       current.copyWith(currentBlockIndex: index, clearError: true),
     );
   }
@@ -191,7 +245,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       notes: notes,
     );
 
-    state = AsyncData(
+    _commitDraft(
       current.copyWith(setDrafts: Map.unmodifiable(drafts), clearError: true),
     );
   }
@@ -223,7 +277,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       notes: notes,
     );
 
-    state = AsyncData(
+    _commitDraft(
       current.copyWith(wodDrafts: Map.unmodifiable(drafts), clearError: true),
     );
   }
@@ -280,6 +334,7 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       ref.invalidate(workoutControllerProvider);
       ref.invalidate(workoutDetailProvider(workoutId));
 
+      await _clearDraft();
       state = AsyncData(
         current.copyWith(
           submitting: false,

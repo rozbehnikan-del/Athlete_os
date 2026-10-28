@@ -32,6 +32,7 @@ class HomeScreen extends ConsumerWidget {
     final now = DateTime.now();
 
     return PageShell(
+      maxWidth: 560,
       padding: const EdgeInsets.fromLTRB(20, 54, 20, 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

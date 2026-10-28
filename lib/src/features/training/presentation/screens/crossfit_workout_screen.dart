@@ -139,7 +139,7 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
                         String? unit,
                         bool? dnf,
                         double? rpe,
-                        bool clearRpe = false,
+                        bool? clearRpe,
                         String? notes,
                       }) {
                         ref
@@ -154,7 +154,7 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
                               secondaryInput: secondary,
                               unit: unit,
                               dnf: dnf,
-                              rpe: clearRpe ? null : rpe,
+                              rpe: clearRpe == true ? null : rpe,
                               notes: notes,
                             );
                       },
@@ -221,7 +221,7 @@ typedef _DraftChanged = void Function({
   String? unit,
   bool? dnf,
   double? rpe,
-  bool clearRpe,
+  bool? clearRpe,
   String? notes,
 });
 

@@ -2,17 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/figma_v1_tokens.dart';
 import '../../../../core/widgets/page_shell.dart';
-import '../../../../core/widgets/primary_button.dart';
-import '../../../../core/widgets/status_badge.dart';
 import '../../application/controllers/crossfit_session_controller.dart';
 import '../../domain/entities/crossfit.dart';
+import '../figma_score_counter.dart';
 import 'mixed_session_screen.dart';
 import 'workout_screen.dart';
 
 class WorkoutEntryScreen extends ConsumerWidget {
   const WorkoutEntryScreen({super.key, required this.workoutId});
-
   final String workoutId;
 
   @override
@@ -20,20 +19,14 @@ class WorkoutEntryScreen extends ConsumerWidget {
     final detail = ref.watch(workoutDetailProvider(workoutId));
     return detail.when(
       loading: () => const PageShell(
-        dark: true,
         child: Center(child: CircularProgressIndicator()),
       ),
       error: (error, _) => PageShell(
-        dark: true,
-        child: Text(error.toString(), style: const TextStyle(color: Colors.white)),
+        child: Text(error.toString()),
       ),
       data: (workout) {
-        if (workout.isWodOnly) {
-          return CrossFitWorkoutScreen(workoutId: workoutId);
-        }
-        if (workout.isMixedSession) {
-          return MixedSessionScreen(workoutId: workoutId);
-        }
+        if (workout.isWodOnly) return CrossFitWorkoutScreen(workoutId: workoutId);
+        if (workout.isMixedSession) return MixedSessionScreen(workoutId: workoutId);
         return WorkoutScreen(workoutId: workoutId);
       },
     );
@@ -42,100 +35,128 @@ class WorkoutEntryScreen extends ConsumerWidget {
 
 class CrossFitWorkoutScreen extends ConsumerWidget {
   const CrossFitWorkoutScreen({super.key, required this.workoutId});
-
   final String workoutId;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(crossFitSessionControllerProvider(workoutId));
 
-    return PageShell(
-      dark: true,
-      child: state.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) =>
-            Text(error.toString(), style: const TextStyle(color: Colors.white)),
-        data: (session) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              session.workout.title,
-              style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Coach-programmed CrossFit session',
-              style: TextStyle(
-                color: Colors.white60,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 18),
-            for (final block in session.workout.session!.blocks) ...[
-              _BlockCard(
-                block: block,
-                draft: block.wod == null
-                    ? null
-                    : session.drafts[block.wod!.id],
-                onChanged: block.wod == null
-                    ? null
-                    : ({
-                        ScalingLevel? scaling,
-                        String? primary,
-                        String? secondary,
-                        String? unit,
-                        bool? dnf,
-                        double? rpe,
-                        bool? clearRpe,
-                        String? notes,
-                      }) {
-                        ref
-                            .read(
-                              crossFitSessionControllerProvider(workoutId)
-                                  .notifier,
-                            )
-                            .updateDraft(
-                              block.wod!.id,
-                              scaling: scaling,
-                              primaryInput: primary,
-                              secondaryInput: secondary,
-                              unit: unit,
-                              dnf: dnf,
-                              rpe: clearRpe == true ? null : rpe,
-                              notes: notes,
-                            );
-                      },
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (session.error != null) ...[
+    return Theme(
+      data: AppTheme.light,
+      child: PageShell(
+        maxWidth: 560,
+        padding: const EdgeInsets.fromLTRB(20, 50, 20, 20),
+        child: state.when(
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Text(error.toString(),
+              style: const TextStyle(color: FigmaV1Tokens.danger)),
+          data: (session) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
               Text(
-                session.error!,
+                session.workout.title,
+                key: const Key('wod-only-heading'),
                 style: const TextStyle(
-                  color: AppColors.red,
-                  fontWeight: FontWeight.w800,
+                  fontSize: 30,
+                  height: 1.2,
+                  fontWeight: FontWeight.w700,
+                  color: FigmaV1Tokens.text,
                 ),
               ),
-              const SizedBox(height: 12),
-            ],
-            if (session.finished)
-              const StatusBadge(
-                label: 'RESULT SAVED',
-                color: AppColors.primaryGreen,
-                dark: true,
-                icon: Icons.check_rounded,
-              )
-            else
-              PrimaryButton(
-                label: session.submitting ? 'Saving…' : 'Save WOD Result',
-                icon: Icons.check_rounded,
-                onPressed: session.submitting
-                    ? null
-                    : () => _submit(context, ref),
+              const SizedBox(height: 14),
+              Text(
+                session.workout.focus.isNotEmpty
+                    ? session.workout.focus
+                    : 'Coach-programmed · CrossFit',
+                style: const TextStyle(color: FigmaV1Tokens.muted, fontSize: 13),
               ),
-          ],
+              const SizedBox(height: 16),
+              for (final block in session.workout.session!.blocks)
+                if (block.wod != null && session.drafts[block.wod!.id] != null) ...[
+                  _FigmaWodEntry(
+                    key: ValueKey(block.wod!.id),
+                    block: block,
+                    draft: session.drafts[block.wod!.id]!,
+                    onChanged: ({
+                      ScalingLevel? scaling,
+                      String? primary,
+                      String? secondary,
+                      List<LoadAttemptDraft>? loadAttempts,
+                      String? unit,
+                      bool? dnf,
+                      double? rpe,
+                      bool? clearRpe,
+                      String? notes,
+                    }) {
+                      final controller = ref.read(
+                        crossFitSessionControllerProvider(workoutId).notifier,
+                      );
+                      // Omitted RPE must not erase a previously saved RPE.
+                      if (clearRpe == true || rpe != null) {
+                        controller.updateDraft(
+                          block.wod!.id,
+                          scaling: scaling,
+                          primaryInput: primary,
+                          secondaryInput: secondary,
+                          loadAttempts: loadAttempts,
+                          unit: unit,
+                          dnf: dnf,
+                          rpe: clearRpe == true ? null : rpe,
+                          notes: notes,
+                        );
+                      } else {
+                        controller.updateDraft(
+                          block.wod!.id,
+                          scaling: scaling,
+                          primaryInput: primary,
+                          secondaryInput: secondary,
+                          loadAttempts: loadAttempts,
+                          unit: unit,
+                          dnf: dnf,
+                          notes: notes,
+                        );
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              if (session.error != null) ...[
+                Text(session.error!,
+                    style: const TextStyle(
+                      color: FigmaV1Tokens.danger,
+                      fontWeight: FontWeight.w700,
+                    )),
+                const SizedBox(height: 12),
+              ],
+              if (session.finished)
+                const _SavedResult()
+              else
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: FilledButton(
+                    key: const Key('wod-save-result'),
+                    onPressed: session.submitting
+                        ? null
+                        : () => _submit(context, ref),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: FigmaV1Tokens.primary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: Text(
+                      session.submitting ? 'Saving…' : 'Save WOD Result',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -147,9 +168,9 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
           .read(crossFitSessionControllerProvider(workoutId).notifier)
           .submit();
       if (saved && context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Result saved.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Result saved.')),
+        );
       }
     } catch (_) {
       if (context.mounted) {
@@ -163,10 +184,37 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
   }
 }
 
+class _SavedResult extends StatelessWidget {
+  const _SavedResult();
+
+  @override
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+    decoration: BoxDecoration(
+      color: FigmaV1Tokens.successSurface,
+      borderRadius: BorderRadius.circular(14),
+    ),
+    child: const Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(Icons.check_circle_rounded, color: FigmaV1Tokens.success),
+        SizedBox(width: 8),
+        Text('RESULT SAVED',
+          style: TextStyle(
+            color: FigmaV1Tokens.success,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 typedef _DraftChanged = void Function({
   ScalingLevel? scaling,
   String? primary,
   String? secondary,
+  List<LoadAttemptDraft>? loadAttempts,
   String? unit,
   bool? dnf,
   double? rpe,
@@ -174,310 +222,292 @@ typedef _DraftChanged = void Function({
   String? notes,
 });
 
-class _BlockCard extends StatelessWidget {
-  const _BlockCard({
+class _FigmaWodEntry extends StatelessWidget {
+  const _FigmaWodEntry({
+    super.key,
     required this.block,
     required this.draft,
     required this.onChanged,
   });
 
   final TrainingBlock block;
-  final WodResultDraft? draft;
-  final _DraftChanged? onChanged;
+  final WodResultDraft draft;
+  final _DraftChanged onChanged;
 
   @override
   Widget build(BuildContext context) {
-    final wod = block.wod;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.darkSurface,
-        borderRadius: BorderRadius.circular(AppRadii.lg),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            block.type.name.toUpperCase(),
-            style: const TextStyle(
-              color: Colors.white54,
-              fontSize: 11,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            block.title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          if (block.coachNote != null) ...[
-            const SizedBox(height: 6),
-            Text(
-              block.coachNote!,
-              style: const TextStyle(color: Colors.white70),
-            ),
-          ],
-          if (wod != null && draft != null) ...[
-            const SizedBox(height: 16),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                StatusBadge(label: _formatLabel(wod.format), dark: true),
-                StatusBadge(label: _scoreLabel(wod.scoreType), dark: true),
-                if (wod.durationSeconds != null)
-                  StatusBadge(
-                    label: '${wod.durationSeconds! ~/ 60} MIN',
-                    dark: true,
+    final wod = block.wod!;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${block.title} · ${_format(wod.format)}',
+          style: const TextStyle(fontSize: 13, color: FigmaV1Tokens.muted),
+        ),
+        if (wod.scalingOptions.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final option in wod.scalingOptions)
+                ChoiceChip(
+                  label: Text(option.name.toUpperCase()),
+                  selected: draft.scaling == option,
+                  onSelected: (selected) {
+                    if (selected) onChanged(scaling: option);
+                  },
+                  labelStyle: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: draft.scaling == option
+                        ? FigmaV1Tokens.success
+                        : FigmaV1Tokens.muted,
                   ),
-                if (wod.timeCapSeconds != null)
-                  StatusBadge(
-                    label: 'CAP ${_duration(wod.timeCapSeconds!)}',
-                    dark: true,
+                  selectedColor: FigmaV1Tokens.successSurface,
+                  backgroundColor: FigmaV1Tokens.surface,
+                  side: BorderSide(
+                    color: draft.scaling == option
+                        ? FigmaV1Tokens.successSurface
+                        : FigmaV1Tokens.border,
                   ),
+                  showCheckmark: false,
+                ),
+            ],
+          ),
+        ],
+        const SizedBox(height: 16),
+        _V1Panel(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (block.coachNote != null) ...[
+                Text(block.coachNote!,
+                    style: const TextStyle(
+                      color: FigmaV1Tokens.muted,
+                      fontSize: 13,
+                    )),
+                const SizedBox(height: 12),
               ],
-            ),
-            const SizedBox(height: 16),
-            if (wod.scalingOptions.isNotEmpty)
-              DropdownButtonFormField<ScalingLevel>(
-                initialValue: draft!.scaling,
-                dropdownColor: AppColors.darkSurface,
-                decoration: const InputDecoration(labelText: 'Scaling'),
+              ..._scoreFields(wod),
+              if (wod.timeCapSeconds != null) ...[
+                const SizedBox(height: 8),
+                Text('Time cap ${_duration(wod.timeCapSeconds!)}',
+                    style: const TextStyle(
+                      color: FigmaV1Tokens.muted,
+                      fontSize: 12,
+                    )),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('DNF / time cap reached'),
+                  value: draft.dnf,
+                  onChanged: (value) => onChanged(dnf: value),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        _V1Panel(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Session feedback',
+                  style: TextStyle(
+                    color: FigmaV1Tokens.text,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  )),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<double?>(
+                initialValue: draft.rpe,
+                decoration: const InputDecoration(labelText: 'RPE'),
                 items: [
-                  for (final scaling in wod.scalingOptions)
-                    DropdownMenuItem(
-                      value: scaling,
-                      child: Text(scaling.name.toUpperCase()),
+                  const DropdownMenuItem<double?>(
+                    value: null, child: Text('Not set'),
+                  ),
+                  for (var value = 1; value <= 10; value++)
+                    DropdownMenuItem<double?>(
+                      value: value.toDouble(),
+                      child: Text('RPE $value'),
                     ),
                 ],
-                onChanged: (value) {
-                  if (value != null) onChanged!(scaling: value);
-                },
+                onChanged: (value) => value == null
+                    ? onChanged(clearRpe: true)
+                    : onChanged(rpe: value),
               ),
-            const SizedBox(height: 12),
-            ..._scoreFields(wod, draft!),
-            if (wod.timeCapSeconds != null) ...[
-              const SizedBox(height: 8),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text(
-                  'DNF / time cap reached',
-                  style: TextStyle(color: Colors.white),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: draft.notes,
+                key: ValueKey('wod-note-${wod.id}'),
+                maxLines: 2,
+                decoration: const InputDecoration(
+                  labelText: 'Notes',
+                  hintText: 'How did it feel?',
                 ),
-                value: draft!.dnf,
-                onChanged: (value) => onChanged!(dnf: value),
+                onChanged: (value) => onChanged(notes: value),
               ),
             ],
-            const SizedBox(height: 8),
-            DropdownButtonFormField<double?>(
-              initialValue: draft!.rpe,
-              dropdownColor: AppColors.darkSurface,
-              decoration: const InputDecoration(labelText: 'RPE'),
-              items: [
-                const DropdownMenuItem<double?>(
-                  value: null,
-                  child: Text('Not set'),
-                ),
-                for (var value = 1; value <= 10; value++)
-                  DropdownMenuItem<double?>(
-                    value: value.toDouble(),
-                    child: Text(value.toString()),
-                  ),
-              ],
-              onChanged: (value) => value == null
-                  ? onChanged!(clearRpe: true)
-                  : onChanged!(rpe: value),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              initialValue: draft!.notes,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Athlete note'),
-              onChanged: (value) => onChanged!(notes: value),
-            ),
-          ],
-        ],
-      ),
+          ),
+        ),
+      ],
     );
   }
 
-  List<Widget> _scoreFields(WodDefinition wod, WodResultDraft draft) {
+  List<Widget> _scoreFields(WodDefinition wod) {
     Widget field(
       String label,
-      String initial,
-      ValueChanged<String> changed, {
+      String value,
+      ValueChanged<String> update, {
       TextInputType? keyboard,
-    }) =>
-        TextFormField(
-          initialValue: initial,
-          keyboardType: keyboard ?? TextInputType.number,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(labelText: label),
-          onChanged: changed,
-        );
+      double fontSize = 18,
+      String? hint,
+    }) => TextFormField(
+      key: ValueKey('wod-score-${wod.id}-$label'),
+      initialValue: value,
+      keyboardType: keyboard ?? TextInputType.number,
+      style: TextStyle(
+        color: FigmaV1Tokens.text,
+        fontSize: fontSize,
+        fontWeight: FontWeight.w700,
+      ),
+      decoration: InputDecoration(labelText: label, hintText: hint),
+      onChanged: update,
+    );
 
     switch (wod.scoreType) {
       case WodScoreType.time:
         return [
           field(
-            'Finish time (mm:ss or seconds)',
+            'Final time (mm:ss or seconds)',
             draft.primaryInput,
-            (value) => onChanged!(primary: value),
+            (value) => onChanged(primary: value),
+            fontSize: 38,
+            hint: '00:00',
           ),
         ];
       case WodScoreType.roundsReps:
         return [
-          Row(
-            children: [
-              Expanded(
-                child: field(
-                  'Rounds',
-                  draft.primaryInput,
-                  (value) => onChanged!(primary: value),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: field(
-                  'Extra reps',
-                  draft.secondaryInput,
-                  (value) => onChanged!(secondary: value),
-                ),
-              ),
-            ],
+          field('Rounds', draft.primaryInput,
+              (value) => onChanged(primary: value)),
+          const SizedBox(height: 14),
+          FigmaScoreCounter(
+            label: 'Extra reps',
+            value: int.tryParse(draft.secondaryInput) ?? 0,
+            onChanged: (value) => onChanged(secondary: '$value'),
           ),
         ];
       case WodScoreType.load:
         return [
-          Row(
-            children: [
-              Expanded(
-                child: field(
-                  'Best load',
-                  draft.primaryInput,
-                  (value) => onChanged!(primary: value),
-                  keyboard: const TextInputType.numberWithOptions(decimal: true),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(child: _UnitPicker(draft: draft, onChanged: onChanged!)),
-            ],
-          ),
+          field('Best load', draft.primaryInput,
+              (value) => onChanged(primary: value),
+              keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          const SizedBox(height: 10),
+          _UnitField(draft: draft, onChanged: onChanged),
         ];
       case WodScoreType.reps:
         return [
-          field('Reps', draft.primaryInput, (value) => onChanged!(primary: value)),
+          FigmaScoreCounter(
+            label: 'Reps',
+            value: int.tryParse(draft.primaryInput) ?? 0,
+            onChanged: (value) => onChanged(primary: '$value'),
+          ),
         ];
       case WodScoreType.calories:
         return [
-          field(
-            'Calories',
-            draft.primaryInput,
-            (value) => onChanged!(primary: value),
-          ),
+          field('Calories', draft.primaryInput,
+              (value) => onChanged(primary: value)),
         ];
       case WodScoreType.distance:
         return [
-          field(
-            'Distance',
-            draft.primaryInput,
-            (value) => onChanged!(primary: value),
-            keyboard: const TextInputType.numberWithOptions(decimal: true),
-          ),
-          const SizedBox(height: 8),
+          field('Distance', draft.primaryInput,
+              (value) => onChanged(primary: value),
+              keyboard: const TextInputType.numberWithOptions(decimal: true)),
+          const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             initialValue: const {'m', 'km', 'mi'}.contains(draft.unit)
-                ? draft.unit
-                : 'm',
-            dropdownColor: AppColors.darkSurface,
+                ? draft.unit : 'm',
             decoration: const InputDecoration(labelText: 'Distance unit'),
             items: const [
               DropdownMenuItem(value: 'm', child: Text('m')),
               DropdownMenuItem(value: 'km', child: Text('km')),
               DropdownMenuItem(value: 'mi', child: Text('mi')),
             ],
-            onChanged: (value) {
-              if (value != null) onChanged!(unit: value);
+            onChanged: (unit) {
+              if (unit != null) onChanged(unit: unit);
             },
           ),
         ];
       case WodScoreType.intervals:
         return [
-          field(
-            'Interval scores (comma separated)',
-            draft.primaryInput,
-            (value) => onChanged!(primary: value),
-            keyboard: TextInputType.text,
-          ),
+          field('Interval scores (comma separated)', draft.primaryInput,
+              (value) => onChanged(primary: value),
+              keyboard: TextInputType.text),
         ];
       case WodScoreType.none:
         return const [
-          Text(
-            'No numeric score required.',
-            style: TextStyle(color: Colors.white70),
-          ),
+          Text('No numeric score required.',
+              style: TextStyle(color: FigmaV1Tokens.muted)),
         ];
     }
   }
-
-  static String _formatLabel(WodFormat format) => switch (format) {
-    WodFormat.forTime => 'FOR TIME',
-    WodFormat.amrap => 'AMRAP',
-    WodFormat.emom => 'EMOM',
-    WodFormat.roundsForTime => 'ROUNDS FOR TIME',
-    WodFormat.chipper => 'CHIPPER',
-    WodFormat.intervals => 'INTERVALS',
-    WodFormat.maxLoad => 'MAX LOAD',
-    WodFormat.maxReps => 'MAX REPS',
-    WodFormat.calories => 'CALORIES',
-    WodFormat.distance => 'DISTANCE',
-    WodFormat.tabata => 'TABATA',
-    WodFormat.custom => 'CUSTOM',
-  };
-
-  static String _scoreLabel(WodScoreType type) => switch (type) {
-    WodScoreType.time => 'TIME',
-    WodScoreType.roundsReps => 'ROUNDS + REPS',
-    WodScoreType.load => 'LOAD',
-    WodScoreType.reps => 'REPS',
-    WodScoreType.calories => 'CALORIES',
-    WodScoreType.distance => 'DISTANCE',
-    WodScoreType.intervals => 'INTERVALS',
-    WodScoreType.none => 'NO SCORE',
-  };
-
-  static String _duration(int seconds) {
-    final minutes = seconds ~/ 60;
-    final rest = seconds % 60;
-    return "$minutes:${rest.toString().padLeft(2, '0')}";
-  }
 }
 
-class _UnitPicker extends StatelessWidget {
-  const _UnitPicker({required this.draft, required this.onChanged});
-
+class _UnitField extends StatelessWidget {
+  const _UnitField({required this.draft, required this.onChanged});
   final WodResultDraft draft;
   final _DraftChanged onChanged;
 
   @override
-  Widget build(BuildContext context) {
-    final value = const {'kg', 'lb'}.contains(draft.unit) ? draft.unit : 'kg';
-    return DropdownButtonFormField<String>(
-      initialValue: value,
-      dropdownColor: AppColors.darkSurface,
-      decoration: const InputDecoration(labelText: 'Unit'),
-      items: const [
-        DropdownMenuItem(value: 'kg', child: Text('kg')),
-        DropdownMenuItem(value: 'lb', child: Text('lb')),
-      ],
-      onChanged: (value) {
-        if (value != null) onChanged(unit: value);
-      },
-    );
-  }
+  Widget build(BuildContext context) => DropdownButtonFormField<String>(
+    initialValue: const {'kg', 'lb'}.contains(draft.unit) ? draft.unit : 'kg',
+    decoration: const InputDecoration(labelText: 'Unit'),
+    items: const [
+      DropdownMenuItem(value: 'kg', child: Text('kg')),
+      DropdownMenuItem(value: 'lb', child: Text('lb')),
+    ],
+    onChanged: (unit) {
+      if (unit != null) onChanged(unit: unit);
+    },
+  );
+}
+
+class _V1Panel extends StatelessWidget {
+  const _V1Panel({required this.child, required this.padding});
+  final Widget child;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    width: double.infinity,
+    padding: padding,
+    decoration: BoxDecoration(
+      color: FigmaV1Tokens.surface,
+      border: Border.all(color: FigmaV1Tokens.border),
+      borderRadius: BorderRadius.circular(FigmaV1Tokens.cardRadius),
+    ),
+    child: child,
+  );
+}
+
+String _format(WodFormat format) => switch (format) {
+  WodFormat.forTime => 'For Time',
+  WodFormat.amrap => 'AMRAP',
+  WodFormat.emom => 'EMOM',
+  WodFormat.roundsForTime => 'Rounds for Time',
+  WodFormat.chipper => 'Chipper',
+  WodFormat.intervals => 'Intervals',
+  WodFormat.maxLoad => 'Max Load',
+  WodFormat.maxReps => 'Max Reps',
+  WodFormat.calories => 'Calories',
+  WodFormat.distance => 'Distance',
+  WodFormat.tabata => 'Tabata',
+  WodFormat.custom => 'Custom',
+};
+
+String _duration(int seconds) {
+  final minutes = seconds ~/ 60;
+  final remainder = seconds % 60;
+  return '$minutes:${remainder.toString().padLeft(2, '0')}';
 }

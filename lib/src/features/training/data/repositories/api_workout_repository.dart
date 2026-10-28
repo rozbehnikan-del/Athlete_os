@@ -1,5 +1,6 @@
 import '../../../../core/api/api_client.dart';
 import '../../../../core/errors/app_exception.dart';
+import '../../domain/entities/crossfit.dart';
 import '../../domain/entities/exercise_prescription.dart';
 import '../../domain/entities/exercise_set.dart';
 import '../../domain/entities/workout.dart';
@@ -43,6 +44,17 @@ class ApiWorkoutRepository implements WorkoutRepository {
               'notes': setResult.notes,
             },
         ],
+        'wods': [
+          for (final wodResult in result.wodResults)
+            {
+              'wod_id': wodResult.wodId,
+              'scaling': _scalingToJson(wodResult.scaling),
+              'score': wodResult.score.toJson(),
+              'dnf': wodResult.dnf,
+              'rpe': wodResult.rpe,
+              'athlete_notes': wodResult.notes,
+            },
+        ],
       },
     );
   }
@@ -79,6 +91,7 @@ class ApiWorkoutRepository implements WorkoutRepository {
       category: _readOptionalString(data, 'category') ?? '',
       focus: _readOptionalString(data, 'focus') ?? '',
       exercises: exercises.map(_exerciseFromJson),
+      session: _sessionFromJson(data['session']),
     );
   }
 
@@ -127,6 +140,122 @@ class ApiWorkoutRepository implements WorkoutRepository {
       weightUnit: _readOptionalWeightUnit(value, 'weight_unit'),
     );
   }
+
+
+  TrainingSession? _sessionFromJson(Object? value) {
+    if (value == null) return null;
+    if (value is! Map<String, dynamic>) {
+      throw const RepositoryException('Server returned malformed session data.');
+    }
+    final blocks = value['blocks'];
+    if (blocks is! List) {
+      throw const RepositoryException('Server returned malformed session data.');
+    }
+    return TrainingSession(
+      id: _readString(value, 'id'),
+      blocks: blocks.map(_blockFromJson).toList(growable: false),
+    );
+  }
+
+  TrainingBlock _blockFromJson(Object? value) {
+    if (value is! Map<String, dynamic>) {
+      throw const RepositoryException('Server returned malformed session data.');
+    }
+    final prescription = value['prescription'];
+    if (prescription is! Map<String, dynamic>) {
+      throw const RepositoryException('Server returned malformed session data.');
+    }
+    return TrainingBlock(
+      id: _readString(value, 'id'),
+      order: _readInt(value, 'order'),
+      type: _blockTypeFromJson(_readString(value, 'type')),
+      title: _readString(value, 'title'),
+      coachNote: _readOptionalString(value, 'coach_note'),
+      prescription: Map<String, dynamic>.unmodifiable(prescription),
+      wod: _wodFromJson(value['wod']),
+    );
+  }
+
+  WodDefinition? _wodFromJson(Object? value) {
+    if (value == null) return null;
+    if (value is! Map<String, dynamic>) {
+      throw const RepositoryException('Server returned malformed WOD data.');
+    }
+    final scaling = value['scaling_options'];
+    final scoreConfig = value['score_config'];
+    if (scaling is! List || scoreConfig is! Map<String, dynamic>) {
+      throw const RepositoryException('Server returned malformed WOD data.');
+    }
+    return WodDefinition(
+      id: _readString(value, 'id'),
+      format: _wodFormatFromJson(_readString(value, 'format')),
+      scoreType: _scoreTypeFromJson(_readString(value, 'score_type')),
+      durationSeconds: _readOptionalInt(value, 'duration_seconds'),
+      timeCapSeconds: _readOptionalInt(value, 'time_cap_seconds'),
+      rounds: _readOptionalInt(value, 'rounds'),
+      scalingOptions: scaling
+          .map((item) {
+            if (item is! String) {
+              throw const RepositoryException('Server returned malformed WOD data.');
+            }
+            return _scalingFromJson(item);
+          })
+          .toList(growable: false),
+      scoreConfig: Map<String, dynamic>.unmodifiable(scoreConfig),
+    );
+  }
+
+  TrainingBlockType _blockTypeFromJson(String value) => switch (value) {
+    'warmup' => TrainingBlockType.warmup,
+    'strength' => TrainingBlockType.strength,
+    'skill' => TrainingBlockType.skill,
+    'metcon' => TrainingBlockType.metcon,
+    'accessory' => TrainingBlockType.accessory,
+    _ => throw const RepositoryException('Server returned unsupported block type.'),
+  };
+
+  WodFormat _wodFormatFromJson(String value) => switch (value) {
+    'for_time' => WodFormat.forTime,
+    'amrap' => WodFormat.amrap,
+    'emom' => WodFormat.emom,
+    'rounds_for_time' => WodFormat.roundsForTime,
+    'chipper' => WodFormat.chipper,
+    'intervals' => WodFormat.intervals,
+    'max_load' => WodFormat.maxLoad,
+    'max_reps' => WodFormat.maxReps,
+    'calories' => WodFormat.calories,
+    'distance' => WodFormat.distance,
+    'tabata' => WodFormat.tabata,
+    'custom' => WodFormat.custom,
+    _ => throw const RepositoryException('Server returned unsupported WOD format.'),
+  };
+
+  WodScoreType _scoreTypeFromJson(String value) => switch (value) {
+    'time' => WodScoreType.time,
+    'rounds_reps' => WodScoreType.roundsReps,
+    'load' => WodScoreType.load,
+    'reps' => WodScoreType.reps,
+    'calories' => WodScoreType.calories,
+    'distance' => WodScoreType.distance,
+    'intervals' => WodScoreType.intervals,
+    'none' => WodScoreType.none,
+    _ => throw const RepositoryException('Server returned unsupported score type.'),
+  };
+
+  ScalingLevel _scalingFromJson(String value) => switch (value) {
+    'rx' => ScalingLevel.rx,
+    'scaled' => ScalingLevel.scaled,
+    'custom' => ScalingLevel.custom,
+    'none' => ScalingLevel.none,
+    _ => throw const RepositoryException('Server returned unsupported scaling.'),
+  };
+
+  String _scalingToJson(ScalingLevel value) => switch (value) {
+    ScalingLevel.rx => 'rx',
+    ScalingLevel.scaled => 'scaled',
+    ScalingLevel.custom => 'custom',
+    ScalingLevel.none => 'none',
+  };
 
   List<WorkoutHistoryEntry> _historyFromEnvelope(Map<String, dynamic> json) {
     final data = json['data'];

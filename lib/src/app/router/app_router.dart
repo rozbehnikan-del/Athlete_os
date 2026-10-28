@@ -12,6 +12,7 @@ import '../../features/more/presentation/screens/more_screen.dart';
 import '../../features/records/presentation/screens/records_screen.dart';
 import '../../features/progress/presentation/screens/progress_screen.dart';
 import '../../features/shell/athlete_app_shell.dart';
+import '../../features/training/presentation/screens/crossfit_workout_screen.dart';
 import '../../features/training/presentation/screens/workout_screen.dart';
 import 'routes.dart';
 
@@ -114,8 +115,9 @@ GoRouter createAppRouter({
               ),
               GoRoute(
                 path: AppRoutes.workout,
-                builder: (context, state) =>
-                    WorkoutScreen(workoutId: state.pathParameters['id']),
+                builder: (context, state) => WorkoutEntryScreen(
+                  workoutId: state.pathParameters['id']!,
+                ),
               ),
             ],
           ),

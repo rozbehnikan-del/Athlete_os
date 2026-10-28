@@ -6,6 +6,7 @@ import 'package:athlete_os/src/core/errors/app_exception.dart';
 import 'package:athlete_os/src/features/training/application/workout_providers.dart';
 import 'package:athlete_os/src/features/training/data/repositories/api_workout_repository.dart';
 import 'package:athlete_os/src/features/training/data/repositories/mock_workout_repository.dart';
+import 'package:athlete_os/src/features/training/domain/entities/crossfit.dart';
 import 'package:athlete_os/src/features/training/domain/entities/exercise_set.dart';
 import 'package:athlete_os/src/features/training/domain/entities/workout_result.dart';
 import 'package:athlete_os/src/features/training/presentation/training_formatters.dart';
@@ -64,6 +65,68 @@ void main() {
       );
       expect(workout.exercises.first.sets.first.targetReps, 8);
       expect(workout.exercises.first.sets.first.targetWeight, 80);
+    });
+
+    test('CrossFit session JSON maps blocks and WOD contract', () async {
+      final repository = repositoryFor(
+        (_) async => jsonResponse(crossFitWorkoutEnvelope()),
+      );
+
+      final workout = (await repository.getTodayWorkout())!;
+
+      expect(workout.isWodOnly, isTrue);
+      expect(workout.session, isNotNull);
+      expect(workout.session!.blocks, hasLength(2));
+      final wod = workout.scoredWods.single;
+      expect(wod.format, WodFormat.amrap);
+      expect(wod.scoreType, WodScoreType.roundsReps);
+      expect(wod.durationSeconds, 720);
+      expect(wod.scalingOptions, [ScalingLevel.rx, ScalingLevel.scaled]);
+    });
+
+    test('WOD result posts score, scaling and no fake set payload', () async {
+      late Map<String, dynamic> requestedBody;
+      final repository = repositoryFor((request) async {
+        requestedBody = jsonDecode(request.body) as Map<String, dynamic>;
+        return jsonResponse({
+          'data': {
+            'id': 'result-1',
+            'workout_id': 'crossfit-workout',
+            'status': 'completed',
+            'completed_at': '2026-10-28T08:00:00Z',
+            'completed_sets': 0,
+            'completed_wods': 1,
+            'notes': null,
+          },
+        }, statusCode: 201);
+      });
+
+      await repository.submitWorkoutResult(
+        WorkoutResult(
+          workoutId: 'crossfit-workout',
+          completedAt: DateTime.parse('2026-10-28T08:00:00Z'),
+          wodResults: const [
+            WodResultEntry(
+              wodId: 'wod-1',
+              scaling: ScalingLevel.rx,
+              score: RoundsRepsWodScore(rounds: 7, reps: 14),
+              rpe: 9,
+            ),
+          ],
+        ),
+      );
+
+      expect(requestedBody['sets'], isEmpty);
+      final wods = requestedBody['wods'] as List<dynamic>;
+      expect(wods, hasLength(1));
+      expect(wods.single['wod_id'], 'wod-1');
+      expect(wods.single['scaling'], 'rx');
+      expect(wods.single['score'], {
+        'type': 'rounds_reps',
+        'rounds': 7,
+        'reps': 14,
+      });
+      expect(wods.single['rpe'], 9);
     });
 
     test('today API with null data returns no workout', () async {
@@ -354,6 +417,59 @@ void main() {
       },
     );
   });
+}
+
+
+Map<String, dynamic> crossFitWorkoutEnvelope() {
+  return {
+    'data': {
+      'id': 'crossfit-workout',
+      'title': 'Engine Day',
+      'category': 'CrossFit',
+      'focus': 'Conditioning',
+      'scheduled_for': '2026-10-28',
+      'status': 'active',
+      'coach': {'id': 'coach-id', 'name': 'Demo Coach'},
+      'exercises': [],
+      'session': {
+        'id': 'session-1',
+        'blocks': [
+          {
+            'id': 'block-1',
+            'order': 1,
+            'type': 'warmup',
+            'title': 'Movement Prep',
+            'coach_note': null,
+            'prescription': {'duration_minutes': 8},
+            'wod': null,
+          },
+          {
+            'id': 'block-2',
+            'order': 2,
+            'type': 'metcon',
+            'title': 'AMRAP 12',
+            'coach_note': 'Smooth transitions.',
+            'prescription': {
+              'movements': [
+                {'name': 'Wall Ball', 'reps': 10},
+                {'name': 'Toes-to-Bar', 'reps': 8},
+              ],
+            },
+            'wod': {
+              'id': 'wod-1',
+              'format': 'amrap',
+              'score_type': 'rounds_reps',
+              'duration_seconds': 720,
+              'time_cap_seconds': null,
+              'rounds': null,
+              'scaling_options': ['rx', 'scaled'],
+              'score_config': {},
+            },
+          },
+        ],
+      },
+    },
+  };
 }
 
 Map<String, dynamic> historyEnvelope({bool includeOlder = false}) {

@@ -201,7 +201,7 @@ class CrossFitSessionController extends AsyncNotifier<CrossFitSessionState> {
     return CrossFitSessionState(workout: workout, drafts: drafts);
   }
 
-  void update(
+  void updateDraft(
     String wodId, {
     ScalingLevel? scaling,
     String? primaryInput,

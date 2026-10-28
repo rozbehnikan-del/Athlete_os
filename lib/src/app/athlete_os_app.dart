@@ -56,7 +56,7 @@ class AthleteOSApp extends ConsumerWidget {
       },
       themeMode:
           ref.watch(appThemeControllerProvider).asData?.value ??
-          ThemeMode.system,
+          ThemeMode.light,
       locale: locale,
       supportedLocales: AppLocalizations.supportedLocales,
       localizationsDelegates: const [

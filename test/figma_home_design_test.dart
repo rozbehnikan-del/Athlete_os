@@ -44,6 +44,7 @@ void main() {
 
     final greeting = tester.getTopLeft(find.byKey(const Key('home-greeting')));
     expect(greeting.dx, closeTo(20, 1));
+    expect(greeting.dy, inInclusiveRange(50, 100));
     final startSize = tester.getSize(
       find.byKey(const Key('home-start-workout')),
     );

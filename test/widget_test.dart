@@ -59,8 +59,8 @@ void main() {
     await tester.tap(find.text('Get Started'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Good Morning'), findsOneWidget);
-    expect(find.text("Today's Workout"), findsOneWidget);
+    expect(find.text('Good morning, Ali'), findsOneWidget);
+    expect(find.text("TODAY'S TRAINING"), findsOneWidget);
   });
 
   testWidgets('English is the default locale', (tester) async {

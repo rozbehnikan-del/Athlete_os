@@ -12,6 +12,7 @@ import '../../application/controllers/mixed_session_controller.dart';
 import '../../application/controllers/workout_session_controller.dart';
 import '../../domain/entities/crossfit.dart';
 import '../../domain/entities/exercise_prescription.dart';
+import '../../domain/entities/wod_timer.dart';
 
 class MixedSessionScreen extends ConsumerStatefulWidget {
   const MixedSessionScreen({super.key, required this.workoutId});
@@ -25,7 +26,7 @@ class MixedSessionScreen extends ConsumerStatefulWidget {
 class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
   Timer? _timer;
   String? _activeWodId;
-  final Map<String, int> _remainingSeconds = {};
+  final Map<String, Stopwatch> _wodClocks = {};
 
   @override
   void dispose() {
@@ -121,7 +122,10 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
                   wod: block.wod!,
                   title: block.title,
                   draft: state.wodDrafts[block.wod!.id]!,
-                  remainingSeconds: _remainingFor(block.wod!),
+                  timerDisplay: WodTimerReading.forWod(
+                    block.wod!,
+                    _wodClocks[block.wod!.id]?.elapsed ?? Duration.zero,
+                  ),
                   timerRunning: _activeWodId == block.wod!.id && _timer != null,
                   onStartTimer: () => _startTimer(block.wod!),
                   onPauseTimer: _pauseTimer,
@@ -236,39 +240,21 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
     );
   }
 
-  int? _remainingFor(WodDefinition wod) {
-    final duration = wod.durationSeconds ?? wod.timeCapSeconds;
-    if (duration == null) return null;
-    return _remainingSeconds[wod.id] ?? duration;
-  }
-
   void _startTimer(WodDefinition wod) {
-    final duration = wod.durationSeconds ?? wod.timeCapSeconds;
-    if (duration == null) return;
-
-    if (_activeWodId != wod.id) {
-      _timer?.cancel();
-      _activeWodId = wod.id;
+    _pauseTimer();
+    final clock = _wodClocks.putIfAbsent(wod.id, Stopwatch.new);
+    if (WodTimerReading.forWod(wod, clock.elapsed)?.ended ?? false) {
+      clock.reset();
     }
-    _remainingSeconds.putIfAbsent(wod.id, () => duration);
-    if (_remainingSeconds[wod.id] == 0) {
-      _remainingSeconds[wod.id] = duration;
-    }
-
-    _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      final current = _remainingSeconds[wod.id] ?? duration;
-      if (current <= 1) {
-        timer.cancel();
-        _timer = null;
-        setState(() {
-          _remainingSeconds[wod.id] = 0;
-        });
-        return;
+    clock.start();
+    _activeWodId = wod.id;
+    _timer = Timer.periodic(const Duration(milliseconds: 250), (_) {
+      if (!mounted) return;
+      if (WodTimerReading.forWod(wod, clock.elapsed)?.ended ?? false) {
+        _pauseTimer();
+      } else {
+        setState(() {});
       }
-      setState(() {
-        _remainingSeconds[wod.id] = current - 1;
-      });
     });
     setState(() {});
   }
@@ -276,18 +262,17 @@ class _MixedSessionScreenState extends ConsumerState<MixedSessionScreen> {
   void _pauseTimer() {
     _timer?.cancel();
     _timer = null;
+    if (_activeWodId != null) {
+      _wodClocks[_activeWodId]?.stop();
+    }
     if (mounted) setState(() {});
   }
 
   void _resetTimer(WodDefinition wod) {
-    _timer?.cancel();
-    _timer = null;
-    final duration = wod.durationSeconds ?? wod.timeCapSeconds;
-    if (duration == null) return;
-    setState(() {
-      _activeWodId = wod.id;
-      _remainingSeconds[wod.id] = duration;
-    });
+    _pauseTimer();
+    _activeWodId = wod.id;
+    _wodClocks[wod.id]?.reset();
+    if (mounted) setState(() {});
   }
 
   Future<void> _finish(BuildContext context) async {
@@ -645,7 +630,7 @@ class _WodCard extends StatelessWidget {
     required this.wod,
     required this.title,
     required this.draft,
-    required this.remainingSeconds,
+    required this.timerDisplay,
     required this.timerRunning,
     required this.onStartTimer,
     required this.onPauseTimer,
@@ -656,7 +641,7 @@ class _WodCard extends StatelessWidget {
   final WodDefinition wod;
   final String title;
   final WodResultDraft draft;
-  final int? remainingSeconds;
+  final WodTimerReading? timerDisplay;
   final bool timerRunning;
   final VoidCallback onStartTimer;
   final VoidCallback onPauseTimer;
@@ -690,9 +675,9 @@ class _WodCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (remainingSeconds != null) ...[
+          if (timerDisplay != null) ...[
             _TimerPanel(
-              seconds: remainingSeconds!,
+              reading: timerDisplay!,
               running: timerRunning,
               onStart: onStartTimer,
               onPause: onPauseTimer,
@@ -876,14 +861,14 @@ class _WodCard extends StatelessWidget {
 
 class _TimerPanel extends StatelessWidget {
   const _TimerPanel({
-    required this.seconds,
+    required this.reading,
     required this.running,
     required this.onStart,
     required this.onPause,
     required this.onReset,
   });
 
-  final int seconds;
+  final WodTimerReading reading;
   final bool running;
   final VoidCallback onStart;
   final VoidCallback onPause;
@@ -891,8 +876,14 @@ class _TimerPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final minutes = seconds ~/ 60;
-    final remainder = seconds % 60;
+    final minutes = reading.seconds ~/ 60;
+    final remainder = reading.seconds % 60;
+    final label = reading.emomMinute == null
+        ? (reading.countsUp ? 'ELAPSED' : 'REMAINING')
+        : 'EMOM • MINUTE ' +
+            reading.emomMinute.toString() +
+            ' / ' +
+            reading.emomTotalMinutes.toString();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
@@ -902,19 +893,37 @@ class _TimerPanel extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            '$minutes:${remainder.toString().padLeft(2, '0')}',
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 38,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 1.5,
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                '$minutes:${remainder.toString().padLeft(2, '0')}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 38,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              if (reading.ended)
+                const Text(
+                  'TIME CAP REACHED',
+                  style: TextStyle(color: AppColors.red, fontSize: 12),
+                ),
+            ],
           ),
           const Spacer(),
           IconButton.filledTonal(
-            tooltip: running ? 'Pause' : 'Start',
-            onPressed: running ? onPause : onStart,
+            tooltip: reading.ended ? 'Reset to restart' : running ? 'Pause' : 'Start',
+            onPressed: reading.ended ? null : running ? onPause : onStart,
             icon: Icon(
               running ? Icons.pause_rounded : Icons.play_arrow_rounded,
             ),

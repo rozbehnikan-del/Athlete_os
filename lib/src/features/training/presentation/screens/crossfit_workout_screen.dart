@@ -283,12 +283,12 @@ class _BlockCard extends StatelessWidget {
                 StatusBadge(label: _scoreLabel(wod.scoreType), dark: true),
                 if (wod.durationSeconds != null)
                   StatusBadge(
-                    label: '\${wod.durationSeconds! ~/ 60} MIN',
+                    label: '${wod.durationSeconds! ~/ 60} MIN',
                     dark: true,
                   ),
                 if (wod.timeCapSeconds != null)
                   StatusBadge(
-                    label: 'CAP \${_duration(wod.timeCapSeconds!)}',
+                    label: 'CAP ${_duration(wod.timeCapSeconds!)}',
                     dark: true,
                   ),
               ],
@@ -505,7 +505,7 @@ class _BlockCard extends StatelessWidget {
   static String _duration(int seconds) {
     final minutes = seconds ~/ 60;
     final rest = seconds % 60;
-    return '\$minutes:\${rest.toString().padLeft(2, '0')}';
+    return "$minutes:${rest.toString().padLeft(2, '0')}";
   }
 }
 

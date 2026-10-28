@@ -18,12 +18,32 @@ final crossFitSessionControllerProvider = AsyncNotifierProvider.family<
     CrossFitSessionState,
     String>(CrossFitSessionController.new);
 
+class LoadAttemptDraft {
+  const LoadAttemptDraft({
+    required this.id,
+    this.loadInput = '',
+    this.successful = true,
+  });
+
+  final String id;
+  final String loadInput;
+  final bool successful;
+
+  LoadAttemptDraft copyWith({String? loadInput, bool? successful}) =>
+      LoadAttemptDraft(
+        id: id,
+        loadInput: loadInput ?? this.loadInput,
+        successful: successful ?? this.successful,
+      );
+}
+
 class WodResultDraft {
   const WodResultDraft({
     required this.wodId,
     required this.scaling,
     this.primaryInput = '',
     this.secondaryInput = '',
+    this.loadAttempts = const [],
     this.unit = 'kg',
     this.dnf = false,
     this.rpe,
@@ -34,6 +54,7 @@ class WodResultDraft {
   final ScalingLevel scaling;
   final String primaryInput;
   final String secondaryInput;
+  final List<LoadAttemptDraft> loadAttempts;
   final String unit;
   final bool dnf;
   final double? rpe;
@@ -43,6 +64,7 @@ class WodResultDraft {
     ScalingLevel? scaling,
     String? primaryInput,
     String? secondaryInput,
+    List<LoadAttemptDraft>? loadAttempts,
     String? unit,
     bool? dnf,
     Object? rpe = _unset,
@@ -53,6 +75,7 @@ class WodResultDraft {
       scaling: scaling ?? this.scaling,
       primaryInput: primaryInput ?? this.primaryInput,
       secondaryInput: secondaryInput ?? this.secondaryInput,
+      loadAttempts: loadAttempts ?? this.loadAttempts,
       unit: unit ?? this.unit,
       dnf: dnf ?? this.dnf,
       rpe: identical(rpe, _unset) ? this.rpe : rpe as double?,
@@ -72,8 +95,24 @@ class WodResultDraft {
             ? RoundsRepsWodScore(rounds: rounds, reps: reps)
             : null;
       case WodScoreType.load:
+        if (unit != 'kg' && unit != 'lb') return null;
+        if (loadAttempts.isNotEmpty) {
+          if (loadAttempts.length > 30) return null;
+          final parsed = <LoadAttempt>[];
+          for (final draft in loadAttempts) {
+            final load = double.tryParse(draft.loadInput);
+            if (load == null || !load.isFinite || load <= 0) return null;
+            parsed.add(LoadAttempt(load: load, successful: draft.successful));
+          }
+          final successful = parsed.where((attempt) => attempt.successful);
+          if (successful.isEmpty) return null;
+          final best = successful
+              .map((attempt) => attempt.load)
+              .reduce((a, b) => a > b ? a : b);
+          return LoadWodScore(load: best, unit: unit, attempts: parsed);
+        }
         final load = double.tryParse(primaryInput);
-        return load != null && load > 0 && (unit == 'kg' || unit == 'lb')
+        return load != null && load.isFinite && load > 0
             ? LoadWodScore(load: load, unit: unit)
             : null;
       case WodScoreType.reps:
@@ -206,6 +245,7 @@ class CrossFitSessionController extends AsyncNotifier<CrossFitSessionState> {
     ScalingLevel? scaling,
     String? primaryInput,
     String? secondaryInput,
+    List<LoadAttemptDraft>? loadAttempts,
     String? unit,
     bool? dnf,
     Object? rpe = WodResultDraft._unset,
@@ -219,6 +259,7 @@ class CrossFitSessionController extends AsyncNotifier<CrossFitSessionState> {
       scaling: scaling,
       primaryInput: primaryInput,
       secondaryInput: secondaryInput,
+      loadAttempts: loadAttempts,
       unit: unit,
       dnf: dnf,
       rpe: rpe,

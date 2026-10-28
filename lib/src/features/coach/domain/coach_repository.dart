@@ -6,4 +6,5 @@ abstract class CoachRepository {
   Future<AthleteTrainingDetail> getAthlete(String id);
   Future<List<LibraryExercise>> getExercises();
   Future<String> assign(String athleteId, WorkoutAssignment workout);
+  Future<String> assignSession(String athleteId, CrossFitSessionAssignment session);
 }

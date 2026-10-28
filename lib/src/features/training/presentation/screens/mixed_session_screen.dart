@@ -812,12 +812,24 @@ class _WodCard extends StatelessWidget {
                 ),
               ],
             WodScoreType.intervals => [
-                field(
-                  'Interval scores (comma separated)',
-                  draft.primaryInput,
-                  (value) => onChanged(primary: value),
-                  keyboard: TextInputType.text,
-                ),
+                if (wod.format == WodFormat.emom &&
+                    wod.scoreConfig['minute_targets'] is List)
+                  _EmomMinuteScores(
+                    key: ValueKey(wod.id),
+                    targets: (wod.scoreConfig['minute_targets'] as List)
+                        .map((target) => target.toString())
+                        .toList(),
+                    scores: draft.primaryInput,
+                    currentMinute: timerDisplay?.emomMinute,
+                    onChanged: (value) => onChanged(primary: value),
+                  )
+                else
+                  field(
+                    'Interval scores (comma separated)',
+                    draft.primaryInput,
+                    (value) => onChanged(primary: value),
+                    keyboard: TextInputType.text,
+                  ),
               ],
             WodScoreType.none => [
                 const Text(
@@ -865,6 +877,83 @@ class _WodCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _EmomMinuteScores extends StatelessWidget {
+  const _EmomMinuteScores({
+    super.key,
+    required this.targets,
+    required this.scores,
+    required this.onChanged,
+    this.currentMinute,
+  });
+
+  final List<String> targets;
+  final String scores;
+  final int? currentMinute;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = scores.split(',');
+
+    void changeMinute(int index, String input) {
+      final updated = List<String>.generate(
+        targets.length,
+        (i) => i < values.length ? values[i].trim() : '',
+      );
+      updated[index] = input;
+      onChanged(updated.join(','));
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'EMOM • RESULTS BY MINUTE',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        for (var index = 0; index < targets.length; index++) ...[
+          Row(
+            children: [
+              SizedBox(
+                width: 85,
+                child: Text(
+                  'Minute ${index + 1}',
+                  style: TextStyle(
+                    color: currentMinute == index + 1
+                        ? AppColors.primaryGreen
+                        : Colors.white70,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Text(
+                  targets[index],
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                width: 72,
+                child: TextFormField(
+                  key: ValueKey('emom-result-$index'),
+                  initialValue: index < values.length ? values[index].trim() : '',
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Actual'),
+                  onChanged: (input) => changeMinute(index, input),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
+      ],
     );
   }
 }

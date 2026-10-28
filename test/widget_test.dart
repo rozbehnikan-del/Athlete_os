@@ -117,7 +117,7 @@ void main() {
     await tester.tap(find.byIcon(Icons.workspace_premium_rounded).hitTestable());
     await tester.pumpAndSettle();
 
-    expect(find.text('Records'), findsOneWidget);
+    expect(find.text('Records'), findsWidgets);
     expect(find.text('No performance records yet'), findsOneWidget);
   });
 

@@ -20,6 +20,8 @@ class MixedSessionState {
     required this.workout,
     required this.setDrafts,
     required this.wodDrafts,
+    this.currentBlockIndex = 0,
+    this.completedBlockIds = const <String>{},
     this.submitting = false,
     this.finished = false,
     this.error,
@@ -28,27 +30,29 @@ class MixedSessionState {
   final Workout workout;
   final Map<String, SetResultDraft> setDrafts;
   final Map<String, WodResultDraft> wodDrafts;
+  final int currentBlockIndex;
+  final Set<String> completedBlockIds;
   final bool submitting;
   final bool finished;
   final String? error;
+
+  List<TrainingBlock> get blocks => workout.session!.blocks;
+  TrainingBlock get currentBlock => blocks[currentBlockIndex];
+  bool get isFirstBlock => currentBlockIndex == 0;
+  bool get isLastBlock => currentBlockIndex == blocks.length - 1;
 
   int get totalSets => setDrafts.length;
   int get completedSets =>
       setDrafts.values.where((draft) => draft.completed).length;
 
-  double get progress {
-    final wodCount = workout.scoredWods.length;
-    final total = totalSets + wodCount;
-    if (total == 0) return 0;
-    final validWods = workout.scoredWods
-        .where((wod) => wodDrafts[wod.id]?.toResult(wod) != null)
-        .length;
-    return (completedSets + validWods) / total;
-  }
+  double get progress =>
+      blocks.isEmpty ? 0 : completedBlockIds.length / blocks.length;
 
   MixedSessionState copyWith({
     Map<String, SetResultDraft>? setDrafts,
     Map<String, WodResultDraft>? wodDrafts,
+    int? currentBlockIndex,
+    Set<String>? completedBlockIds,
     bool? submitting,
     bool? finished,
     String? error,
@@ -58,6 +62,8 @@ class MixedSessionState {
       workout: workout,
       setDrafts: setDrafts ?? this.setDrafts,
       wodDrafts: wodDrafts ?? this.wodDrafts,
+      currentBlockIndex: currentBlockIndex ?? this.currentBlockIndex,
+      completedBlockIds: completedBlockIds ?? this.completedBlockIds,
       submitting: submitting ?? this.submitting,
       finished: finished ?? this.finished,
       error: clearError ? null : error ?? this.error,
@@ -110,6 +116,57 @@ class MixedSessionController extends AsyncNotifier<MixedSessionState> {
       workout: workout,
       setDrafts: Map.unmodifiable(setDrafts),
       wodDrafts: Map.unmodifiable(wodDrafts),
+    );
+  }
+
+  void previousBlock() {
+    final current = state.requireValue;
+    if (current.isFirstBlock) return;
+    state = AsyncData(
+      current.copyWith(
+        currentBlockIndex: current.currentBlockIndex - 1,
+        clearError: true,
+      ),
+    );
+  }
+
+  bool completeCurrentBlockAndContinue() {
+    final current = state.requireValue;
+    final block = current.currentBlock;
+
+    if (block.wod != null) {
+      final wod = block.wod!;
+      final result = current.wodDrafts[wod.id]?.toResult(wod);
+      if (result == null) {
+        state = AsyncData(
+          current.copyWith(
+            error: 'Enter a valid score before completing this WOD block.',
+          ),
+        );
+        return false;
+      }
+    }
+
+    final completed = Set<String>.of(current.completedBlockIds)..add(block.id);
+    final nextIndex = current.isLastBlock
+        ? current.currentBlockIndex
+        : current.currentBlockIndex + 1;
+
+    state = AsyncData(
+      current.copyWith(
+        currentBlockIndex: nextIndex,
+        completedBlockIds: Set.unmodifiable(completed),
+        clearError: true,
+      ),
+    );
+    return true;
+  }
+
+  void goToBlock(int index) {
+    final current = state.requireValue;
+    if (index < 0 || index >= current.blocks.length) return;
+    state = AsyncData(
+      current.copyWith(currentBlockIndex: index, clearError: true),
     );
   }
 

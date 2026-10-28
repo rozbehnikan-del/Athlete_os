@@ -23,10 +23,10 @@ class AppThemeController extends AsyncNotifier<ThemeMode> {
           .getString(preferenceKey);
       return ThemeMode.values.firstWhere(
         (mode) => mode.name == stored,
-        orElse: () => ThemeMode.system,
+        orElse: () => ThemeMode.light,
       );
     } catch (_) {
-      return ThemeMode.system;
+      return ThemeMode.light;
     }
   }
 
@@ -43,7 +43,7 @@ class AppThemeController extends AsyncNotifier<ThemeMode> {
             .setString(preferenceKey, mode.name);
       } catch (_) {
         if (ref.mounted && selectionVersion == _selectionVersion) {
-          state = const AsyncData(ThemeMode.system);
+          state = const AsyncData(ThemeMode.light);
         }
       }
     });

@@ -264,8 +264,8 @@ void main() {
         expect(find.text('Get Started'), findsOneWidget);
         await tester.tap(find.text('Get Started'));
         await tester.pumpAndSettle();
-        expect(find.text("Today's Workout"), findsOneWidget);
-        expect(find.text('User'), findsOneWidget);
+        expect(find.text("TODAY'S TRAINING"), findsOneWidget);
+        expect(find.text('Good morning, User'), findsOneWidget);
       } else {
         expect(find.text('Coach Home'), findsOneWidget);
         expect(find.text("Today's Workout"), findsNothing);

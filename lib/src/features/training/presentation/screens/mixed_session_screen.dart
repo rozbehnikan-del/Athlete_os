@@ -932,12 +932,11 @@ class _MaxLoadAttempts extends StatelessWidget {
             children: [
               Expanded(
                 child: TextFormField(
-                  key: ValueKey('load-attempt-' + draft.loadAttempts[index].id),
+                  key: ValueKey('load-attempt-${draft.loadAttempts[index].id}'),
                   initialValue: draft.loadAttempts[index].loadInput,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(labelText: 'Attempt ' +
-                      (index + 1).toString() + ' (' + draft.unit + ')'),
+                  decoration: InputDecoration(labelText: 'Attempt ${index + 1} (${draft.unit})'),
                   onChanged: (input) => _update(
                     index,
                     draft.loadAttempts[index].copyWith(loadInput: input),
@@ -982,7 +981,7 @@ class _MaxLoadAttempts extends StatelessWidget {
         Text(
           best == null
               ? 'Record a successful attempt to set a best load.'
-              : 'Best successful load: ' + best.toString() + ' ' + draft.unit,
+              : 'Best successful load: $best ${draft.unit}',
           style: const TextStyle(color: AppColors.primaryGreen, fontWeight: FontWeight.w700),
         ),
       ],

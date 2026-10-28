@@ -1,6 +1,7 @@
 import '../../../core/api/api_client.dart';
 import '../../../core/errors/app_exception.dart';
 import '../domain/coach_models.dart';
+import '../domain/crossfit_session_assignment.dart';
 import '../domain/coach_repository.dart';
 
 class ApiCoachRepository implements CoachRepository {

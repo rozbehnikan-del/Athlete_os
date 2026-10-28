@@ -28,7 +28,8 @@ class PageShell extends StatelessWidget {
       child: ColoredBox(
         color: theme.scaffoldBackgroundColor,
         child: SafeArea(
-          child: Center(
+          child: Align(
+            alignment: Alignment.topCenter,
             child: ConstrainedBox(
               constraints: BoxConstraints(maxWidth: maxWidth ?? maxContentWidth(size)),
               child: SingleChildScrollView(

@@ -88,19 +88,34 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
                       bool? clearRpe,
                       String? notes,
                     }) {
-                      ref.read(
+                      final controller = ref.read(
                         crossFitSessionControllerProvider(workoutId).notifier,
-                      ).updateDraft(
-                        block.wod!.id,
-                        scaling: scaling,
-                        primaryInput: primary,
-                        secondaryInput: secondary,
-                        loadAttempts: loadAttempts,
-                        unit: unit,
-                        dnf: dnf,
-                        rpe: clearRpe == true ? null : rpe,
-                        notes: notes,
                       );
+                      // Omitted RPE must not erase a previously saved RPE.
+                      if (clearRpe == true || rpe != null) {
+                        controller.updateDraft(
+                          block.wod!.id,
+                          scaling: scaling,
+                          primaryInput: primary,
+                          secondaryInput: secondary,
+                          loadAttempts: loadAttempts,
+                          unit: unit,
+                          dnf: dnf,
+                          rpe: clearRpe == true ? null : rpe,
+                          notes: notes,
+                        );
+                      } else {
+                        controller.updateDraft(
+                          block.wod!.id,
+                          scaling: scaling,
+                          primaryInput: primary,
+                          secondaryInput: secondary,
+                          loadAttempts: loadAttempts,
+                          unit: unit,
+                          dnf: dnf,
+                          notes: notes,
+                        );
+                      }
                     },
                   ),
                   const SizedBox(height: 16),

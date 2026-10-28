@@ -63,7 +63,7 @@ class WodResultDraft {
   WodScore? scoreFor(WodDefinition wod) {
     switch (wod.scoreType) {
       case WodScoreType.time:
-        final seconds = int.tryParse(primaryInput);
+        final seconds = _parseTime(primaryInput);
         return seconds != null && seconds > 0 ? TimeWodScore(seconds) : null;
       case WodScoreType.roundsReps:
         final rounds = int.tryParse(primaryInput);
@@ -117,6 +117,20 @@ class WodResultDraft {
       rpe: rpe,
       notes: notes.trim().isEmpty ? null : notes.trim(),
     );
+  }
+
+  static int? _parseTime(String input) {
+    final trimmed = input.trim();
+    final direct = int.tryParse(trimmed);
+    if (direct != null) return direct;
+    final parts = trimmed.split(':');
+    if (parts.length != 2) return null;
+    final minutes = int.tryParse(parts[0]);
+    final seconds = int.tryParse(parts[1]);
+    if (minutes == null || seconds == null || minutes < 0 || seconds < 0 || seconds > 59) {
+      return null;
+    }
+    return minutes * 60 + seconds;
   }
 
   static const _unset = Object();

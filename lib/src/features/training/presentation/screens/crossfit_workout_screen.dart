@@ -165,7 +165,7 @@ class CrossFitWorkoutScreen extends ConsumerWidget {
               Text(
                 session.error!,
                 style: const TextStyle(
-                  color: AppColors.danger,
+                  color: AppColors.red,
                   fontWeight: FontWeight.w800,
                 ),
               ),

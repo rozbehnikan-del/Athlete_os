@@ -880,10 +880,7 @@ class _TimerPanel extends StatelessWidget {
     final remainder = reading.seconds % 60;
     final label = reading.emomMinute == null
         ? (reading.countsUp ? 'ELAPSED' : 'REMAINING')
-        : 'EMOM • MINUTE ' +
-            reading.emomMinute.toString() +
-            ' / ' +
-            reading.emomTotalMinutes.toString();
+        : 'EMOM • MINUTE ${reading.emomMinute} / ${reading.emomTotalMinutes}';
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),

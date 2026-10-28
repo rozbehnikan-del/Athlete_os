@@ -9,12 +9,15 @@ class PageShell extends StatelessWidget {
     required this.child,
     this.dark = false,
     this.padding,
+    this.maxWidth,
   });
 
   final Widget child;
   final bool dark;
   /// Optional screen-specific spacing; other pages keep their existing padding.
   final EdgeInsetsGeometry? padding;
+  /// Optional narrower layout for Figma mobile-first surfaces on desktop.
+  final double? maxWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +30,7 @@ class PageShell extends StatelessWidget {
         child: SafeArea(
           child: Center(
             child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: maxContentWidth(size)),
+              constraints: BoxConstraints(maxWidth: maxWidth ?? maxContentWidth(size)),
               child: SingleChildScrollView(
                 padding: padding ?? EdgeInsets.all(
                   size == WindowClass.compact ? AppSpacing.x4 : AppSpacing.x8,

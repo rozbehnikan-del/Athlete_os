@@ -66,18 +66,18 @@ void main() {
     return container;
   }
 
-  test('theme defaults to system and unknown stored values are safe', () async {
+  test('theme defaults to Figma V1 light and unknown values are safe', () async {
     expect(
       await containerFor(
         MemoryThemePreferences(),
       ).read(appThemeControllerProvider.future),
-      ThemeMode.system,
+      ThemeMode.light,
     );
     expect(
       await containerFor(
         MemoryThemePreferences(value: 'invalid'),
       ).read(appThemeControllerProvider.future),
-      ThemeMode.system,
+      ThemeMode.light,
     );
   });
 
@@ -99,12 +99,12 @@ void main() {
     },
   );
 
-  test('storage read and write failures fall back to system', () async {
+  test('storage read and write failures fall back to light', () async {
     expect(
       await containerFor(
         MemoryThemePreferences(failRead: true),
       ).read(appThemeControllerProvider.future),
-      ThemeMode.system,
+      ThemeMode.light,
     );
     final container = containerFor(MemoryThemePreferences(failWrite: true));
     await container.read(appThemeControllerProvider.future);
@@ -113,7 +113,7 @@ void main() {
         .setThemeMode(ThemeMode.dark);
     expect(
       container.read(appThemeControllerProvider).requireValue,
-      ThemeMode.system,
+      ThemeMode.light,
     );
   });
 

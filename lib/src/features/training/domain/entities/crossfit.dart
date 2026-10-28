@@ -112,14 +112,40 @@ class RoundsRepsWodScore extends WodScore {
   };
 }
 
+class LoadAttempt {
+  const LoadAttempt({required this.load, required this.successful});
+
+  final double load;
+  final bool successful;
+
+  Map<String, dynamic> toJson() => {
+    'load': load,
+    'successful': successful,
+  };
+}
+
 class LoadWodScore extends WodScore {
-  const LoadWodScore({required this.load, required this.unit});
+  const LoadWodScore({
+    required this.load,
+    required this.unit,
+    this.attempts = const [],
+  });
+
   final double load;
   final String unit;
+  final List<LoadAttempt> attempts;
+
   @override
   WodScoreType get type => WodScoreType.load;
+
   @override
-  Map<String, dynamic> toJson() => {'type': 'load', 'load': load, 'unit': unit};
+  Map<String, dynamic> toJson() => {
+    'type': 'load',
+    'load': load,
+    'unit': unit,
+    if (attempts.isNotEmpty)
+      'attempts': [for (final attempt in attempts) attempt.toJson()],
+  };
 }
 
 class RepsWodScore extends WodScore {

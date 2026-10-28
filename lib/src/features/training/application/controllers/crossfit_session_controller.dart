@@ -135,9 +135,21 @@ class WodResultDraft {
             .split(',')
             .map((value) => double.tryParse(value.trim()))
             .toList();
-        return values.isNotEmpty && values.every((value) => value != null)
-            ? IntervalsWodScore(values.cast<double>())
-            : null;
+        if (values.isEmpty || values.any((value) => value == null)) {
+          return null;
+        }
+        final parsed = values.cast<double>();
+        final targets = wod.scoreConfig['minute_targets'];
+        if (wod.format == WodFormat.emom && targets is List) {
+          if (parsed.length != targets.length ||
+              parsed.any((value) =>
+                  !value.isFinite ||
+                  value < 0 ||
+                  value != value.roundToDouble())) {
+            return null;
+          }
+        }
+        return IntervalsWodScore(parsed);
       case WodScoreType.none:
         return const NoWodScore();
     }

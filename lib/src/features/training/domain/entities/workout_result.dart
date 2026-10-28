@@ -1,3 +1,4 @@
+import 'crossfit.dart';
 import 'exercise_set.dart';
 
 class SetResult {
@@ -29,13 +30,17 @@ class SetResult {
 class WorkoutResult {
   const WorkoutResult({
     required this.workoutId,
-    required this.setResults,
+    this.setResults = const [],
+    this.wodResults = const [],
     required this.completedAt,
     this.notes,
   });
 
   final String workoutId;
   final List<SetResult> setResults;
+  final List<WodResultEntry> wodResults;
   final DateTime completedAt;
   final String? notes;
+
+  bool get hasResultData => setResults.isNotEmpty || wodResults.isNotEmpty;
 }
